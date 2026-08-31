@@ -1,0 +1,1427 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#C1D5C0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="工作台" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>个人工作台</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon.svg" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+  <style>
+    :root {
+      color-scheme: light;
+      --green: #C1D5C0;
+      --blue: #B5C9D6;
+      --tea: #DCC8B0;
+      --pink: #D4C5C9;
+      --bg: #E8E3D9;
+      --paper: rgba(248, 242, 234, .86);
+      --paper-strong: rgba(253, 248, 240, .94);
+      --ink: #414947;
+      --muted: #77807c;
+      --line: rgba(93, 103, 98, .16);
+      --shadow: 0 16px 34px rgba(73, 82, 78, .10);
+      --soft-shadow: 0 9px 20px rgba(73, 82, 78, .07);
+      --radius: 22px;
+      --small-radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "HarmonyOS Sans SC", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(212, 197, 201, .52), transparent 28%),
+        radial-gradient(circle at 90% 4%, rgba(181, 201, 214, .46), transparent 24%),
+        linear-gradient(180deg, #DDE7DA 0%, var(--bg) 48%, #E7D9CD 100%);
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+
+    .app {
+      width: min(1180px, calc(100vw - 18px));
+      margin: 0 auto;
+      padding: max(10px, env(safe-area-inset-top)) 0 26px;
+    }
+
+    .hero, .panel, .summary-card, .card, .resource-card, .today-card, .day-card {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      box-shadow: var(--soft-shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: end;
+      margin: 10px 0 14px;
+      padding: 18px 16px 14px;
+      border-radius: 28px;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: 18px;
+      top: 18px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--pink);
+      box-shadow: 24px 0 0 rgba(193, 213, 192, .82), 48px 0 0 rgba(181, 201, 214, .82);
+    }
+
+    .eyebrow, .kicker {
+      margin: 0 0 7px;
+      color: #708c80;
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1; letter-spacing: 0; }
+    h2 { font-size: 1.08rem; line-height: 1.18; }
+    h3 { font-size: .98rem; line-height: 1.2; }
+
+    .lede {
+      margin-top: 9px;
+      max-width: 56ch;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: .95rem;
+    }
+
+    .hero-actions, .row-actions, .chips {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .button, .pill-button, .icon-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 40px;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(253, 248, 240, .9);
+      color: var(--ink);
+      box-shadow: var(--soft-shadow);
+    }
+
+    .button.primary, .pill-button.primary {
+      border-color: rgba(112, 140, 128, .2);
+      background: linear-gradient(180deg, rgba(142, 167, 151, .98), rgba(116, 145, 134, .98));
+      color: #fff;
+    }
+
+    .button.danger, .icon-button.danger { color: #8b686b; }
+    .button:active, .pill-button:active, .icon-button:active { transform: translateY(1px); }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .summary-card {
+      min-height: 118px;
+      padding: 14px;
+      border-radius: var(--radius);
+    }
+
+    .summary-card::before {
+      content: "";
+      display: block;
+      width: 11px;
+      height: 11px;
+      margin-bottom: 12px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+    .summary-card:nth-child(2)::before { background: var(--blue); }
+    .summary-card:nth-child(3)::before { background: var(--tea); }
+    .summary-card:nth-child(4)::before { background: var(--pink); }
+
+    .summary-label, .muted, .meta, .section-note {
+      color: var(--muted);
+      font-size: .8rem;
+    }
+
+    .summary-value {
+      display: block;
+      margin: 9px 0 4px;
+      font-size: 1.28rem;
+      font-weight: 850;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .panel {
+      padding: 14px;
+      border-radius: var(--radius);
+    }
+
+    .panel.wide { grid-column: 1 / -1; }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .note {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: var(--small-radius);
+      background: rgba(255, 255, 255, .34);
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+
+    .today-list, .stack { display: grid; gap: 10px; }
+    .today-list { margin-bottom: 12px; }
+
+    .today-card, .card {
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      background: var(--paper-strong);
+    }
+
+    .today-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .main-text { display: grid; gap: 6px; min-width: 0; }
+    .course-title, .todo-title, .checkin-title, .project-title, .record-date, .resource-title, .exam-title {
+      font-weight: 850;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.5;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 0 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .42);
+      color: #6d7773;
+      font-size: .74rem;
+      white-space: nowrap;
+    }
+
+    .tag.hot {
+      border-color: rgba(112, 140, 128, .2);
+      background: rgba(193, 213, 192, .38);
+      color: #668276;
+    }
+
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .day-card {
+      padding: 12px;
+      border-radius: var(--radius);
+      background: rgba(253, 248, 240, .76);
+    }
+
+    .day-card.today {
+      background: rgba(193, 213, 192, .26);
+    }
+
+    .day-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .course-row {
+      padding: 10px 0;
+      border-top: 1px solid rgba(93, 103, 98, .12);
+    }
+    .course-row:first-child { padding-top: 0; border-top: 0; }
+
+    .form {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .form.compact {
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+
+    .todo-form {
+      grid-template-columns: 1fr 92px 148px auto;
+      align-items: center;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(253, 248, 240, .95);
+      color: var(--ink);
+      outline: none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
+    }
+
+    input, select { min-height: 42px; padding: 0 12px; }
+    textarea {
+      min-height: 64px;
+      resize: vertical;
+      padding: 11px 13px;
+      border-radius: 18px;
+      line-height: 1.45;
+    }
+
+    .checkin-card { display: grid; gap: 10px; }
+    .checkin-head, .todo-row, .project-row, .count-row, .exam-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .checkin-inputs {
+      display: grid;
+      grid-template-columns: 1fr 118px auto;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .timer {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: rgba(181, 201, 214, .26);
+      color: #657d8b;
+      font-size: .82rem;
+      white-space: nowrap;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .mini {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--small-radius);
+      background: rgba(255, 255, 255, .32);
+    }
+    .mini strong { display: block; margin-top: 5px; font-size: 1.06rem; }
+
+    .progress {
+      height: 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, .44);
+    }
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+    }
+
+    .resource-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .resource-card {
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      gap: 11px;
+      align-items: center;
+      min-height: 84px;
+      padding: 12px;
+      border-radius: var(--radius);
+      background: var(--paper-strong);
+    }
+
+    .resource-icon {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: linear-gradient(180deg, rgba(212,197,201,.32), rgba(181,201,214,.26));
+      font-size: 1.45rem;
+    }
+
+    .resource-card:hover { transform: translateY(-1px); }
+
+    .record-group {
+      padding: 12px;
+      border-radius: var(--small-radius);
+      background: rgba(255, 255, 255, .3);
+    }
+
+    .record-item {
+      display: grid;
+      gap: 4px;
+      padding: 9px 0;
+      border-top: 1px solid rgba(93, 103, 98, .11);
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.5;
+    }
+    .record-item:first-of-type { border-top: 0; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      transform: translateX(-50%) translateY(8px);
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(65, 73, 71, .94);
+      color: #fff;
+      font-size: .88rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+      z-index: 20;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 1060px) {
+      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .week-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .resource-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .exam-row { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      .app { width: min(100vw - 14px, 1180px); }
+      .hero, .layout, .summary, .week-grid, .resource-grid, .stat-grid { grid-template-columns: 1fr; }
+      .hero-actions { justify-content: flex-start; }
+      .panel.wide { grid-column: auto; }
+      .section-head, .today-card, .note { align-items: flex-start; flex-direction: column; }
+      .form.compact, .todo-form, .checkin-head, .checkin-inputs, .todo-row, .project-row, .count-row, .exam-row {
+        grid-template-columns: 1fr;
+      }
+      .button, .pill-button { min-height: 42px; }
+      .summary-card { min-height: auto; }
+      .resource-card { grid-template-columns: 52px 1fr; }
+      h1 { font-size: 2.15rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">📌 Student WorkBench</p>
+        <h1>个人工作台</h1>
+        <p class="lede">课表、打卡计时、待办、项目进度、倒计时、资料入口和 408 复习记录都在这里。所有数据保存在本机 localStorage。</p>
+      </div>
+      <div class="hero-actions">
+        <button class="button" id="exportBtn" type="button">📥 导出</button>
+        <button class="button" id="importBtn" type="button">📤 导入</button>
+        <button class="button danger" id="resetBtn" type="button">🧹 重置</button>
+      </div>
+    </header>
+
+    <section class="summary" id="summary" aria-label="今日概览"></section>
+
+    <main class="layout">
+      <section class="panel wide">
+        <header class="section-head">
+          <div>
+            <p class="kicker">📅 课表</p>
+            <h2>今天上什么课</h2>
+          </div>
+          <span class="section-note" id="todayLabel"></span>
+        </header>
+        <div class="note">
+          <span>显示每节课的时间和地点，周末自动显示无课。</span>
+          <span id="currentPeriod"></span>
+        </div>
+        <div class="today-list" id="todayCourses"></div>
+        <div class="week-grid" id="weekGrid"></div>
+      </section>
+
+      <section class="panel">
+        <header class="section-head">
+          <div>
+            <p class="kicker">✅ 每日打卡</p>
+            <h2>学习记录和计时</h2>
+          </div>
+          <span class="section-note" id="checkinRate"></span>
+        </header>
+        <form class="form compact" id="addCheckinForm">
+          <input name="name" type="text" maxlength="24" placeholder="新增打卡项" />
+          <button class="button primary" type="submit">➕ 添加</button>
+        </form>
+        <div class="stat-grid" id="timeStats"></div>
+        <div class="stack" id="checkinList"></div>
+      </section>
+
+      <section class="panel">
+        <header class="section-head">
+          <div>
+            <p class="kicker">📝 待办</p>
+            <h2>按优先级处理</h2>
+          </div>
+          <span class="section-note" id="todoNote"></span>
+        </header>
+        <form class="form todo-form" id="todoForm">
+          <input name="title" type="text" maxlength="48" placeholder="待办内容" required />
+          <select name="priority" aria-label="优先级">
+            <option value="3">高</option>
+            <option value="2" selected>中</option>
+            <option value="1">低</option>
+          </select>
+          <input name="due" type="date" required />
+          <button class="button primary" type="submit">➕ 添加</button>
+        </form>
+        <div class="stack" id="todoList"></div>
+      </section>
+
+      <section class="panel">
+        <header class="section-head">
+          <div>
+            <p class="kicker">🎯 项目进度</p>
+            <h2>由打卡自动推进</h2>
+          </div>
+          <span class="section-note" id="projectNote"></span>
+        </header>
+        <div class="stack" id="projectList"></div>
+      </section>
+
+      <section class="panel">
+        <header class="section-head">
+          <div>
+            <p class="kicker">⏰ 倒计时</p>
+            <h2>关键节点</h2>
+          </div>
+          <span class="section-note">自动计算剩余天数</span>
+        </header>
+        <div class="stack" id="countdownList"></div>
+      </section>
+
+      <section class="panel">
+        <header class="section-head">
+          <div>
+            <p class="kicker">🔗 资料入口</p>
+            <h2>常用网站</h2>
+          </div>
+          <span class="section-note">emoji 图标入口</span>
+        </header>
+        <div class="resource-grid" id="resourceGrid"></div>
+      </section>
+
+      <section class="panel wide">
+        <header class="section-head">
+          <div>
+            <p class="kicker">📖 408 考研</p>
+            <h2>四科进度</h2>
+          </div>
+          <span class="section-note">章节和备注自动保存</span>
+        </header>
+        <div class="note">
+          <span>当前：数据结构进行中，计组 / 操作系统 / 计算机网络未开始。</span>
+          <span>计划 2027 年 8 月系统启动</span>
+        </div>
+        <div class="stack" id="examList"></div>
+      </section>
+
+      <section class="panel wide">
+        <header class="section-head">
+          <div>
+            <p class="kicker">📊 最近 7 天记录</p>
+            <h2>按日期分组</h2>
+          </div>
+          <span class="section-note" id="recordNote"></span>
+        </header>
+        <div class="stack" id="recordList"></div>
+      </section>
+    </main>
+  </div>
+
+  <input id="importInput" type="file" accept="application/json" hidden />
+  <div class="toast" id="toast" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = "workbench.v2";
+      const dayOrder = ["mon", "tue", "wed", "thu", "fri"];
+      const dayLabels = { mon: "周一", tue: "周二", wed: "周三", thu: "周四", fri: "周五" };
+      const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+      const periods = [
+        ["1", "08:20", "09:05"], ["2", "09:15", "10:00"], ["3", "10:20", "11:05"], ["4", "11:15", "12:00"],
+        ["5", "14:00", "14:45"], ["6", "14:55", "15:40"], ["7", "15:50", "16:35"], ["8", "16:45", "17:30"],
+        ["9", "18:30", "19:15"], ["10", "19:25", "20:10"], ["11", "20:20", "21:05"], ["12", "21:15", "22:00"],
+      ];
+
+      const schedule = {
+        mon: [
+          { slot: "1-2节", title: "统计软件及应用(R语言)", place: "立诚1-104" },
+          { slot: "3-4节", title: "数学分析Ⅲ", place: "笃行1-311" },
+          { slot: "5-6节", title: "马原", place: "知明1-104" },
+        ],
+        tue: [
+          { slot: "1-2节", title: "数据结构与算法", place: "笃行1-311" },
+          { slot: "3-4节", title: "数据结构与算法", place: "笃行1-518" },
+          { slot: "5-6节", title: "概率论", place: "知明1-104" },
+        ],
+        wed: [
+          { slot: "1-2节", title: "数学分析Ⅲ", place: "笃行1-311" },
+          { slot: "3-4节", title: "宏观经济学", place: "知明1-104" },
+        ],
+        thu: [
+          { slot: "1-2节", title: "劳动教育", place: "立诚1-215", note: "第1、4-8周线上，2-3周线下" },
+          { slot: "3-4节", title: "概率论", place: "知明1-104" },
+          { slot: "5-6节", title: "数学分析Ⅲ", place: "笃行1-311" },
+          { slot: "7-8节", title: "数据结构与算法", place: "笃行1-311" },
+        ],
+        fri: [
+          { slot: "1-2节", title: "宏观经济学", place: "知明1-104" },
+          { slot: "3-4节", title: "数据科学导论与生涯规划", place: "笃行1-311" },
+          { slot: "5-6节", title: "大学英语25", place: "地点待定" },
+          { slot: "7-8节", title: "大学体育（三）", place: "地点待定" },
+        ],
+      };
+
+      const countdowns = [
+        { name: "美赛", date: "2027-02-05" },
+        { name: "六级", date: "2026-12-10" },
+        { name: "蓝桥杯省赛", date: "2027-04-10" },
+        { name: "大创申报截止", date: "2027-02-28" },
+      ];
+
+      const projectRules = [
+        { name: "大创", base: "进行中（已立项）", goal: "省级立项", deadline: "2027-02-28", target: 3600, sources: [{ name: "数据结构复习", weight: .7 }, { name: "大创推进", weight: 1.3 }] },
+        { name: "美赛", base: "备赛中", goal: "H奖以上", deadline: "2027-02-05", target: 3000, sources: [{ name: "数模学习", weight: 1.5 }] },
+        { name: "蓝桥杯", base: "备赛中", goal: "省奖以上", deadline: "2027-04-10", target: 3200, sources: [{ name: "Python学习", weight: 1.4 }] },
+        { name: "六级", base: "备考中", goal: "425+", deadline: "2026-12-10", target: 2200, sources: [{ name: "六级单词", weight: 1.3 }] },
+        { name: "408考研", base: "未开始（2027年8月启动）", goal: "先跟数据结构打基础", deadline: "2027-08-01", target: 5000, sources: [{ name: "数据结构复习", weight: 1 }] },
+        { name: "统计建模", base: "未开始", goal: "2027年3月报名", deadline: "2027-03-01", target: 2600, sources: [{ name: "数模学习", weight: .9 }, { name: "大创推进", weight: .8 }] },
+        { name: "数学建模国赛", base: "未开始", goal: "2027年9月比赛", deadline: "2027-09-01", target: 4600, sources: [{ name: "数模学习", weight: 1.2 }] },
+      ];
+
+      const resources = [
+        { emoji: "📚", group: "学习平台", name: "B站", url: "https://www.bilibili.com/" },
+        { emoji: "💻", group: "学习平台", name: "GitHub", url: "https://github.com/" },
+        { emoji: "📝", group: "学习平台", name: "LeetCode", url: "https://leetcode.cn/" },
+        { emoji: "📖", group: "学习平台", name: "CSDN", url: "https://csdn.net/" },
+        { emoji: "🎓", group: "学术资源", name: "知网", url: "https://www.cnki.net/" },
+        { emoji: "📊", group: "学术资源", name: "百度学术", url: "https://xueshu.baidu.com/" },
+        { emoji: "🏫", group: "学校相关", name: "福建师大教务系统", url: "" },
+        { emoji: "📌", group: "学校相关", name: "课程中心", url: "" },
+        { emoji: "📖", group: "工具", name: "在线Typora", url: "" },
+        { emoji: "🎯", group: "工具", name: "ProcessOn", url: "https://www.processon.com/" },
+      ];
+
+      const defaults = {
+        checkins: [
+          { name: "数据结构复习", hint: "对应数据结构课程巩固" },
+          { name: "六级单词", hint: "每天30个，对应六级备考" },
+          { name: "Python学习", hint: "对应Python技能积累" },
+          { name: "数模学习", hint: "对应数学建模备赛" },
+          { name: "大创推进", hint: "对应大创项目开发" },
+        ],
+        todos: [
+          { title: "复盘数据结构课堂内容", priority: 3, due: "2026-09-01" },
+          { title: "六级单词 30 个", priority: 2, due: "2026-09-01" },
+          { title: "整理大创下一步任务", priority: 2, due: "2026-09-03" },
+        ],
+        exam: [
+          { name: "数据结构", stage: "进行中", chapter: "学校课程同步复习", note: "链表、栈队列、树、图、排序查找" },
+          { name: "计算机组成原理", stage: "未开始", chapter: "", note: "" },
+          { name: "操作系统", stage: "未开始", chapter: "", note: "" },
+          { name: "计算机网络", stage: "未开始", chapter: "", note: "" },
+        ],
+      };
+
+      const $ = (selector) => document.querySelector(selector);
+      const els = {
+        summary: $("#summary"),
+        todayLabel: $("#todayLabel"),
+        currentPeriod: $("#currentPeriod"),
+        todayCourses: $("#todayCourses"),
+        weekGrid: $("#weekGrid"),
+        checkinRate: $("#checkinRate"),
+        timeStats: $("#timeStats"),
+        checkinList: $("#checkinList"),
+        addCheckinForm: $("#addCheckinForm"),
+        todoNote: $("#todoNote"),
+        todoForm: $("#todoForm"),
+        todoList: $("#todoList"),
+        projectNote: $("#projectNote"),
+        projectList: $("#projectList"),
+        countdownList: $("#countdownList"),
+        resourceGrid: $("#resourceGrid"),
+        examList: $("#examList"),
+        recordNote: $("#recordNote"),
+        recordList: $("#recordList"),
+        exportBtn: $("#exportBtn"),
+        importBtn: $("#importBtn"),
+        resetBtn: $("#resetBtn"),
+        importInput: $("#importInput"),
+        toast: $("#toast"),
+      };
+
+      const state = load();
+      seedFormDates();
+      bind();
+      render();
+      setInterval(renderTimers, 1000);
+      registerServiceWorker();
+
+      function bind() {
+        els.addCheckinForm.addEventListener("submit", addCheckin);
+        els.todoForm.addEventListener("submit", addTodo);
+        els.exportBtn.addEventListener("click", exportData);
+        els.importBtn.addEventListener("click", () => els.importInput.click());
+        els.importInput.addEventListener("change", importData);
+        els.resetBtn.addEventListener("click", resetData);
+        document.addEventListener("click", onClick);
+        document.addEventListener("input", onInput);
+        document.addEventListener("change", onChange);
+      }
+
+      function render() {
+        const now = new Date();
+        const todayKey = weekKey(now);
+        renderSummary(now, todayKey);
+        renderSchedule(now, todayKey);
+        renderCheckins();
+        renderTodos();
+        renderProjects();
+        renderCountdowns(now);
+        renderResources();
+        renderExam();
+        renderRecords();
+        renderTimers();
+      }
+
+      function renderSummary(now, todayKey) {
+        const todayCourses = schedule[todayKey] || [];
+        const doneToday = state.checkins.filter(item => item.records.some(r => r.date === today())).length;
+        const openTodos = state.todos.filter(t => !t.done).sort(compareTodos);
+        const next = countdowns.map(c => ({ ...c, ...countdown(c.date, now) })).sort((a, b) => a.days - b.days)[0];
+        els.summary.innerHTML = [
+          summaryCard("📅 今日课程", `${todayCourses.length} 门`, todayCourses[0]?.title || "今天没有课"),
+          summaryCard("✅ 今日打卡", `${doneToday}/${state.checkins.length}`, `${formatMinutes(todayMinutes())} 已学习`),
+          summaryCard("📝 待办事项", `${openTodos.length} 项`, openTodos[0]?.title || "没有待办"),
+          summaryCard("⏰ 最近节点", next?.name || "暂无", next?.label || "慢慢来"),
+        ].join("");
+      }
+
+      function renderSchedule(now, todayKey) {
+        const current = currentPeriod(now);
+        els.todayLabel.textContent = `${dayNames[now.getDay()]} · ${dateKey(now)}`;
+        els.currentPeriod.textContent = current ? `当前第 ${current.index} 节 · ${current.start}-${current.end}` : "现在不在上课时段";
+        const todayCourses = schedule[todayKey] || [];
+        els.todayCourses.innerHTML = todayCourses.length ? todayCourses.map(course => `
+          <article class="today-card">
+            <div class="main-text">
+              <span class="course-title">${escapeHtml(course.title)}</span>
+              <span class="meta-row">
+                <span class="tag hot">${escapeHtml(course.slot)}</span>
+                <span class="tag">${slotTime(course.slot)}</span>
+                <span>📍 ${escapeHtml(course.place)}</span>
+              </span>
+              ${course.note ? `<span class="muted">${escapeHtml(course.note)}</span>` : ""}
+            </div>
+            <span class="tag hot">今天</span>
+          </article>
+        `).join("") : `
+          <article class="today-card">
+            <div class="main-text">
+              <span class="course-title">今天没有课</span>
+              <span class="muted">可以安排复习、打卡或项目推进。</span>
+            </div>
+            <span class="tag hot">休整</span>
+          </article>
+        `;
+
+        els.weekGrid.innerHTML = dayOrder.map(day => `
+          <article class="day-card ${day === todayKey ? "today" : ""}">
+            <div class="day-head">
+              <strong>${dayLabels[day]}</strong>
+              <span class="tag ${day === todayKey ? "hot" : ""}">${day === todayKey ? "今天" : `${schedule[day].length} 门`}</span>
+            </div>
+            ${schedule[day].map(course => `
+              <div class="course-row">
+                <div class="course-title">${escapeHtml(course.title)}</div>
+                <div class="meta-row">
+                  <span class="tag">${escapeHtml(course.slot)}</span>
+                  <span class="tag">${slotTime(course.slot)}</span>
+                  <span>📍 ${escapeHtml(course.place)}</span>
+                </div>
+                ${course.note ? `<div class="muted">${escapeHtml(course.note)}</div>` : ""}
+              </div>
+            `).join("")}
+          </article>
+        `).join("");
+      }
+
+      function renderCheckins() {
+        const weekDone = state.checkins.reduce((sum, item) => sum + item.records.filter(r => inThisWeek(r.date)).length, 0);
+        const possible = Math.max(1, state.checkins.length * daysInWeekSoFar());
+        els.checkinRate.textContent = `${Math.round(weekDone / possible * 100)}% 本周完成率`;
+        els.timeStats.innerHTML = [
+          miniStat("今日已学", formatMinutes(todayMinutes())),
+          miniStat("本周累计", formatMinutes(weekMinutes())),
+          miniStat("最长连打", `${Math.max(0, ...state.checkins.map(streak))} 天`),
+        ].join("");
+
+        els.checkinList.innerHTML = state.checkins.map(item => {
+          const active = Boolean(item.timerStart);
+          const todayDone = item.records.some(r => r.date === today());
+          return `
+            <article class="card checkin-card">
+              <div class="checkin-head">
+                <div class="main-text">
+                  <span class="checkin-title">✅ ${escapeHtml(item.name)}</span>
+                  <span class="muted">${escapeHtml(item.hint || "自定义打卡项")}</span>
+                  <span class="meta-row">
+                    <span>今日 ${formatMinutes(itemMinutes(item, today()))}</span>
+                    <span>本周 ${formatMinutes(item.records.filter(r => inThisWeek(r.date)).reduce((s, r) => s + r.minutes, 0))}</span>
+                    <span>连续 ${streak(item)} 天</span>
+                  </span>
+                </div>
+                <span class="timer" data-timer="${item.id}">${active ? "计时中" : todayDone ? "今日已打卡" : "未打卡"}</span>
+              </div>
+              <div class="checkin-inputs">
+                <textarea data-content="${item.id}" placeholder="今天学了什么，比如：链表反转、二叉树遍历、六级核心词">${escapeHtml(item.draft || "")}</textarea>
+                <input data-minutes="${item.id}" type="number" min="0" step="1" placeholder="手动分钟" value="${item.manualMinutes || ""}" />
+                <button class="button primary" data-action="checkin" data-id="${item.id}" type="button">打卡</button>
+              </div>
+              <div class="row-actions">
+                <button class="pill-button" data-action="start" data-id="${item.id}" type="button" ${active ? "disabled" : ""}>⏱️ 开始计时</button>
+                <button class="pill-button" data-action="stop" data-id="${item.id}" type="button" ${active ? "" : "disabled"}>⏹️ 停止计时</button>
+                <button class="icon-button danger" data-action="delete-checkin" data-id="${item.id}" type="button">🗑️ 删除</button>
+              </div>
+            </article>
+          `;
+        }).join("");
+      }
+
+      function renderTodos() {
+        const open = state.todos.filter(t => !t.done).length;
+        els.todoNote.textContent = `${open} 项未完成`;
+        els.todoList.innerHTML = state.todos.slice().sort(compareTodos).map(todo => `
+          <article class="card ${todo.done ? "todo-complete" : ""}">
+            <div class="todo-row">
+              <div class="main-text">
+                <span class="todo-title">${escapeHtml(todo.title)}</span>
+                <span class="meta-row">
+                  <span class="tag ${todo.priority === 3 ? "hot" : ""}">${priorityText(todo.priority)}</span>
+                  <span>截止 ${escapeHtml(todo.due)}</span>
+                  <span>${todo.done ? "已完成" : daysLeftText(todo.due)}</span>
+                </span>
+              </div>
+              <div class="row-actions">
+                <button class="pill-button ${todo.done ? "" : "primary"}" data-action="toggle-todo" data-id="${todo.id}" type="button">${todo.done ? "恢复" : "完成"}</button>
+                <button class="icon-button danger" data-action="delete-todo" data-id="${todo.id}" type="button">🗑️</button>
+              </div>
+            </div>
+          </article>
+        `).join("");
+      }
+
+      function renderProjects() {
+        const projects = projectRules.map(projectState);
+        const avg = Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length);
+        els.projectNote.textContent = `平均 ${avg}%`;
+        els.projectList.innerHTML = projects.map(project => `
+          <article class="card">
+            <div class="project-row">
+              <div class="main-text">
+                <div class="meta-row">
+                  <span class="project-title">🏆 ${escapeHtml(project.name)}</span>
+                  <span class="tag hot">${escapeHtml(project.stage)}</span>
+                </div>
+                <span class="muted">${escapeHtml(project.base)} · 目标：${escapeHtml(project.goal)}</span>
+                <div class="progress" aria-label="${escapeHtml(project.name)}进度 ${project.progress}%">
+                  <span style="width:${project.progress}%"></span>
+                </div>
+                <span class="meta-row">
+                  <span>${project.progress}%</span>
+                  <span>${escapeHtml(daysLeftText(project.deadline))}</span>
+                </span>
+                <span class="chips">${project.sources.map(s => `<span class="tag">${escapeHtml(s.name)} ×${s.weight}</span>`).join("")}</span>
+              </div>
+            </div>
+          </article>
+        `).join("");
+      }
+
+      function renderCountdowns(now) {
+        els.countdownList.innerHTML = countdowns
+          .map(item => ({ ...item, ...countdown(item.date, now) }))
+          .sort((a, b) => a.days - b.days)
+          .map(item => `
+            <article class="card">
+              <div class="count-row">
+                <div class="main-text">
+                  <span class="countdown-name">⏰ ${escapeHtml(item.name)}</span>
+                  <span class="muted">${escapeHtml(item.date)}</span>
+                </div>
+                <span class="tag hot">${escapeHtml(item.label)}</span>
+              </div>
+              <div class="summary-value">${item.days < 0 ? "已过" : "还有"} ${Math.abs(item.days)} 天</div>
+            </article>
+          `).join("");
+      }
+
+      function renderResources() {
+        els.resourceGrid.innerHTML = state.resources.map(item => {
+          const body = `
+            <span class="resource-icon">${item.emoji}</span>
+            <span class="main-text">
+              <span class="resource-title">${escapeHtml(item.name)}</span>
+              <span class="muted">${escapeHtml(item.group)}</span>
+            </span>
+          `;
+          return item.url
+            ? `<a class="resource-card" href="${escapeAttr(item.url)}" target="_blank" rel="noreferrer">${body}</a>`
+            : `<button class="resource-card" data-action="set-resource" data-name="${escapeAttr(item.name)}" type="button">${body}</button>`;
+        }).join("");
+      }
+
+      function renderExam() {
+        els.examList.innerHTML = state.exam.map(item => `
+          <article class="card">
+            <div class="exam-row">
+              <div class="main-text">
+                <span class="exam-title">🎓 ${escapeHtml(item.name)}</span>
+                <span class="meta-row"><span class="tag hot">${escapeHtml(item.stage)}</span><span>${escapeHtml(examHint(item.stage))}</span></span>
+              </div>
+              <select data-action="exam-stage" data-id="${item.id}" aria-label="${escapeHtml(item.name)}状态">
+                ${["未开始", "进行中", "一轮", "二轮", "刷题", "冲刺"].map(stage => `<option value="${stage}" ${stage === item.stage ? "selected" : ""}>${stage}</option>`).join("")}
+              </select>
+              <input data-action="exam-chapter" data-id="${item.id}" value="${escapeAttr(item.chapter)}" placeholder="当前章节 / 内容" />
+              <input data-action="exam-note" data-id="${item.id}" value="${escapeAttr(item.note)}" placeholder="备注" />
+            </div>
+          </article>
+        `).join("");
+      }
+
+      function renderRecords() {
+        const groups = recentRecords();
+        const total = groups.reduce((sum, group) => sum + group.items.length, 0);
+        els.recordNote.textContent = `${total} 条`;
+        els.recordList.innerHTML = groups.length ? groups.map(group => `
+          <section class="record-group">
+            <div class="record-date">📅 ${escapeHtml(group.date)}</div>
+            ${group.items.map(item => `
+              <div class="record-item">
+                <strong>${escapeHtml(item.name)} · ${formatMinutes(item.minutes)}</strong>
+                <span>${escapeHtml(item.content || "未填写具体内容")}</span>
+              </div>
+            `).join("")}
+          </section>
+        `).join("") : `<article class="card"><span class="muted">最近 7 天还没有打卡记录。</span></article>`;
+      }
+
+      function renderTimers() {
+        state.checkins.forEach(item => {
+          const el = document.querySelector(`[data-timer="${item.id}"]`);
+          if (!el) return;
+          el.textContent = item.timerStart ? `计时中 ${formatMinutes(activeMinutes(item))}` : (item.records.some(r => r.date === today()) ? "今日已打卡" : "未打卡");
+        });
+      }
+
+      function addCheckin(event) {
+        event.preventDefault();
+        const name = event.currentTarget.name.value.trim();
+        if (!name) return;
+        if (state.checkins.some(item => item.name === name)) {
+          toast("这个打卡项已经存在");
+          return;
+        }
+        state.checkins.push({ id: id("check"), name, hint: "自定义打卡项", records: [], timerStart: null, draft: "", manualMinutes: "" });
+        event.currentTarget.reset();
+        save();
+        render();
+        toast("已添加打卡项");
+      }
+
+      function addTodo(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        state.todos.push({
+          id: id("todo"),
+          title: form.title.value.trim(),
+          priority: Number(form.priority.value),
+          due: form.due.value,
+          done: false,
+        });
+        form.reset();
+        seedFormDates();
+        save();
+        render();
+        toast("已添加待办");
+      }
+
+      function onClick(event) {
+        const target = event.target.closest("[data-action]");
+        if (!target) return;
+        const action = target.dataset.action;
+        const item = state.checkins.find(x => x.id === target.dataset.id);
+
+        if (action === "start" && item) {
+          item.timerStart = Date.now();
+          save();
+          render();
+          toast(`${item.name} 开始计时`);
+        }
+
+        if (action === "stop" && item) {
+          item.manualMinutes = String(Number(item.manualMinutes || 0) + activeMinutes(item));
+          item.timerStart = null;
+          save();
+          render();
+          toast(`${item.name} 已停止计时`);
+        }
+
+        if (action === "checkin" && item) {
+          const timerMinutes = activeMinutes(item);
+          const manual = Number(item.manualMinutes || 0);
+          const minutes = Math.max(1, Math.round(timerMinutes + manual));
+          const content = item.draft.trim();
+          item.records.push({ id: id("rec"), date: today(), at: new Date().toISOString(), minutes, content });
+          item.timerStart = null;
+          item.manualMinutes = "";
+          item.draft = "";
+          save();
+          render();
+          toast(`${item.name} 打卡成功`);
+        }
+
+        if (action === "delete-checkin" && item) {
+          if (!confirm(`删除「${item.name}」及其记录吗？`)) return;
+          state.checkins = state.checkins.filter(x => x.id !== item.id);
+          save();
+          render();
+          toast("已删除打卡项");
+        }
+
+        if (action === "toggle-todo") {
+          const todo = state.todos.find(x => x.id === target.dataset.id);
+          if (!todo) return;
+          todo.done = !todo.done;
+          save();
+          render();
+          toast(todo.done ? "待办已完成" : "待办已恢复");
+        }
+
+        if (action === "delete-todo") {
+          state.todos = state.todos.filter(x => x.id !== target.dataset.id);
+          save();
+          render();
+          toast("已删除待办");
+        }
+
+        if (action === "set-resource") {
+          const name = target.dataset.name;
+          const url = prompt(`请输入「${name}」的网址`);
+          if (url === null) return;
+          const resource = state.resources.find(x => x.name === name);
+          if (resource) resource.url = url.trim();
+          save();
+          render();
+          toast("资料入口已更新");
+        }
+      }
+
+      function onInput(event) {
+        const target = event.target;
+        const contentId = target.dataset.content;
+        const minutesId = target.dataset.minutes;
+        if (contentId) {
+          const item = state.checkins.find(x => x.id === contentId);
+          if (item) item.draft = target.value;
+          save();
+        }
+        if (minutesId) {
+          const item = state.checkins.find(x => x.id === minutesId);
+          if (item) item.manualMinutes = target.value;
+          save();
+        }
+        if (target.dataset.action === "exam-chapter" || target.dataset.action === "exam-note") {
+          const item = state.exam.find(x => x.id === target.dataset.id);
+          if (!item) return;
+          if (target.dataset.action === "exam-chapter") item.chapter = target.value;
+          if (target.dataset.action === "exam-note") item.note = target.value;
+          save();
+        }
+      }
+
+      function onChange(event) {
+        const target = event.target;
+        if (target.dataset.action !== "exam-stage") return;
+        const item = state.exam.find(x => x.id === target.dataset.id);
+        if (!item) return;
+        item.stage = target.value;
+        save();
+        render();
+      }
+
+      function projectState(rule) {
+        const score = rule.sources.reduce((sum, source) => {
+          const check = state.checkins.find(item => item.name === source.name);
+          const minutes = check ? check.records.reduce((s, r) => s + Number(r.minutes || 0), 0) : 0;
+          return sum + minutes * source.weight;
+        }, 0);
+        const progress = clamp(Math.round(score / rule.target * 100), 0, 100);
+        return { ...rule, progress, stage: stageByProgress(progress, rule.base) };
+      }
+
+      function recentRecords() {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 6);
+        const rows = [];
+        state.checkins.forEach(item => {
+          item.records.forEach(record => {
+            if (parseDate(record.date) >= stripTime(cutoff)) {
+              rows.push({ ...record, name: item.name });
+            }
+          });
+        });
+        const groups = new Map();
+        rows.sort((a, b) => b.date.localeCompare(a.date) || b.at.localeCompare(a.at)).forEach(row => {
+          if (!groups.has(row.date)) groups.set(row.date, []);
+          groups.get(row.date).push(row);
+        });
+        return [...groups.entries()].map(([date, items]) => ({ date, items }));
+      }
+
+      function itemMinutes(item, date) {
+        return item.records.filter(r => r.date === date).reduce((sum, r) => sum + Number(r.minutes || 0), 0) + (date === today() ? activeMinutes(item) : 0);
+      }
+
+      function todayMinutes() {
+        return state.checkins.reduce((sum, item) => sum + itemMinutes(item, today()), 0);
+      }
+
+      function weekMinutes() {
+        return state.checkins.reduce((sum, item) => {
+          const records = item.records.filter(r => inThisWeek(r.date)).reduce((s, r) => s + Number(r.minutes || 0), 0);
+          return sum + records + activeMinutes(item);
+        }, 0);
+      }
+
+      function activeMinutes(item) {
+        return item.timerStart ? Math.max(0, Math.floor((Date.now() - item.timerStart) / 60000)) : 0;
+      }
+
+      function streak(item) {
+        const dates = new Set(item.records.map(r => r.date));
+        let cursor = stripTime(new Date());
+        let count = 0;
+        while (dates.has(dateKey(cursor))) {
+          count += 1;
+          cursor.setDate(cursor.getDate() - 1);
+        }
+        return count;
+      }
+
+      function load() {
+        const fallback = {
+          checkins: defaults.checkins.map(item => ({ id: id("check"), ...item, records: [], timerStart: null, draft: "", manualMinutes: "" })),
+          todos: defaults.todos.map(item => ({ id: id("todo"), done: false, ...item })),
+          exam: defaults.exam.map(item => ({ id: id("exam"), ...item })),
+          resources: resources.map(item => ({ ...item })),
+        };
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return fallback;
+          const data = JSON.parse(raw);
+          return {
+            checkins: Array.isArray(data.checkins) ? normalizeCheckins(data.checkins) : fallback.checkins,
+            todos: Array.isArray(data.todos) ? normalizeTodos(data.todos) : fallback.todos,
+            exam: Array.isArray(data.exam) ? normalizeExam(data.exam) : fallback.exam,
+            resources: Array.isArray(data.resources) ? normalizeResources(data.resources) : fallback.resources,
+          };
+        } catch {
+          return fallback;
+        }
+      }
+
+      function save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function normalizeCheckins(items) {
+        return items.filter(item => item && item.name).map(item => ({
+          id: item.id || id("check"),
+          name: String(item.name),
+          hint: String(item.hint || "自定义打卡项"),
+          records: Array.isArray(item.records) ? item.records.map(normalizeRecord).filter(Boolean) : [],
+          timerStart: item.timerStart ? Number(item.timerStart) : null,
+          draft: String(item.draft || ""),
+          manualMinutes: item.manualMinutes || "",
+        }));
+      }
+
+      function normalizeRecord(record) {
+        if (!record || !record.date) return null;
+        return {
+          id: record.id || id("rec"),
+          date: String(record.date),
+          at: record.at || new Date().toISOString(),
+          minutes: Math.max(0, Number(record.minutes || 0)),
+          content: String(record.content || ""),
+        };
+      }
+
+      function normalizeTodos(items) {
+        return items.filter(item => item && item.title).map(item => ({
+          id: item.id || id("todo"),
+          title: String(item.title),
+          priority: clamp(Number(item.priority || 2), 1, 3),
+          due: item.due || today(),
+          done: Boolean(item.done),
+        }));
+      }
+
+      function normalizeExam(items) {
+        const byName = new Map(items.filter(item => item && item.name).map(item => [item.name, item]));
+        return defaults.exam.map(base => {
+          const saved = byName.get(base.name) || base;
+          return {
+            id: saved.id || id("exam"),
+            name: base.name,
+            stage: ["未开始", "进行中", "一轮", "二轮", "刷题", "冲刺"].includes(saved.stage) ? saved.stage : base.stage,
+            chapter: String(saved.chapter || base.chapter || ""),
+            note: String(saved.note || base.note || ""),
+          };
+        });
+      }
+
+      function normalizeResources(items) {
+        const byName = new Map(items.filter(item => item && item.name).map(item => [item.name, item]));
+        return resources.map(base => {
+          const saved = byName.get(base.name);
+          return { ...base, url: saved && typeof saved.url === "string" ? saved.url : base.url };
+        });
+      }
+
+      function exportData() {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `workbench-${today()}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast("已导出备份");
+      }
+
+      function importData(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        file.text().then(text => {
+          try {
+            const data = JSON.parse(text);
+            if (Array.isArray(data.checkins)) state.checkins = normalizeCheckins(data.checkins);
+            if (Array.isArray(data.todos)) state.todos = normalizeTodos(data.todos);
+            if (Array.isArray(data.exam)) state.exam = normalizeExam(data.exam);
+            if (Array.isArray(data.resources)) state.resources = normalizeResources(data.resources);
+            save();
+            render();
+            toast("导入成功");
+          } catch {
+            toast("导入失败");
+          } finally {
+            event.target.value = "";
+          }
+        });
+      }
+
+      function resetData() {
+        if (!confirm("确定要恢复默认数据吗？打卡、待办和考研记录都会清空。")) return;
+        localStorage.removeItem(STORAGE_KEY);
+        const fresh = load();
+        Object.assign(state, fresh);
+        seedFormDates();
+        render();
+        toast("已恢复默认数据");
+      }
+
+      function registerServiceWorker() {
+        if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+          navigator.serviceWorker.register("./sw.js").catch(() => {});
+        }
+      }
+
+      function seedFormDates() {
+        els.todoForm.due.value = today();
+      }
+
+      function summaryCard(label, value, detail) {
+        return `<article class="summary-card"><span class="summary-label">${label}</span><strong class="summary-value">${escapeHtml(value)}</strong><span class="meta">${escapeHtml(detail)}</span></article>`;
+      }
+
+      function miniStat(label, value) {
+        return `<article class="mini"><span class="meta">${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`;
+      }
+
+      function countdown(dateText, now) {
+        const days = Math.round((stripTime(parseDate(dateText)) - stripTime(now)) / 86400000);
+        return { days, label: days === 0 ? "今天" : days === 1 ? "明天" : days > 1 ? `还有 ${days} 天` : `已过 ${Math.abs(days)} 天` };
+      }
+
+      function stageByProgress(progress, base) {
+        if (progress <= 0) return base.startsWith("未开始") ? "未开始" : "起步";
+        if (progress < 20) return "起步";
+        if (progress < 45) return "推进中";
+        if (progress < 75) return "备赛中";
+        if (progress < 95) return "冲刺";
+        return "收尾";
+      }
+
+      function examHint(stage) {
+        return { "未开始": "等待启动", "进行中": "学校课程同步复习", "一轮": "夯基础", "二轮": "再巩固", "刷题": "做题提升", "冲刺": "收尾复盘" }[stage] || "记录中";
+      }
+
+      function slotTime(slot) {
+        const [start, end = start] = slot.replace("节", "").split("-").map(Number);
+        return `${periods[start - 1][1]}-${periods[end - 1][2]}`;
+      }
+
+      function currentPeriod(now) {
+        const value = now.getHours() * 60 + now.getMinutes();
+        for (const [index, start, end] of periods) {
+          if (value >= toMinutes(start) && value <= toMinutes(end)) return { index, start, end };
+        }
+        return null;
+      }
+
+      function weekKey(date) {
+        const key = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][date.getDay()];
+        return dayOrder.includes(key) ? key : null;
+      }
+
+      function inThisWeek(dateText) {
+        return parseDate(dateText) >= startOfWeek(new Date()) && parseDate(dateText) <= stripTime(new Date());
+      }
+
+      function daysInWeekSoFar() {
+        return Math.max(1, Math.floor((stripTime(new Date()) - startOfWeek(new Date())) / 86400000) + 1);
+      }
+
+      function startOfWeek(date) {
+        const d = stripTime(date);
+        d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        return d;
+      }
+
+      function compareTodos(a, b) {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        if (b.priority !== a.priority) return b.priority - a.priority;
+        return String(a.due).localeCompare(String(b.due));
+      }
+
+      function priorityText(value) {
+        return ({ 3: "高优先级", 2: "中优先级", 1: "低优先级" })[value] || "中优先级";
+      }
+
+      function daysLeftText(dateText) {
+        const days = Math.round((stripTime(parseDate(dateText)) - stripTime(new Date())) / 86400000);
+        if (days === 0) return "今天截止";
+        if (days === 1) return "明天截止";
+        return days > 1 ? `还有 ${days} 天` : `已过 ${Math.abs(days)} 天`;
+      }
+
+      function formatMinutes(total) {
+        const minutes = Math.round(Number(total || 0));
+        if (minutes < 60) return `${minutes} 分钟`;
+        return `${Math.floor(minutes / 60)}小时${minutes % 60}分钟`;
+      }
+
+      function today() { return dateKey(new Date()); }
+      function dateKey(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      }
+      function parseDate(text) {
+        const [y, m, d] = String(text).split("-").map(Number);
+        return new Date(y, m - 1, d);
+      }
+      function stripTime(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
+      function toMinutes(text) {
+        const [h, m] = text.split(":").map(Number);
+        return h * 60 + m;
+      }
+      function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
+      function id(prefix) { return `${prefix}-${Math.random().toString(36).slice(2, 9)}-${Date.now().toString(36)}`; }
+      function escapeHtml(value) {
+        return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+      }
+      function escapeAttr(value) { return escapeHtml(value); }
+      function toast(text) {
+        els.toast.textContent = text;
+        els.toast.classList.add("show");
+        clearTimeout(toast.timer);
+        toast.timer = setTimeout(() => els.toast.classList.remove("show"), 1700);
+      }
+    })();
+  </script>
+</body>
+</html>
