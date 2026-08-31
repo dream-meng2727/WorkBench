@@ -46,11 +46,94 @@
     button, input, select, textarea { font: inherit; }
     button { cursor: pointer; }
     a { color: inherit; text-decoration: none; }
+    body.nav-open { overflow: hidden; }
 
     .app {
       width: min(1180px, calc(100vw - 18px));
       margin: 0 auto;
       padding: max(10px, env(safe-area-inset-top)) 0 26px;
+    }
+
+    .sidebar {
+      position: fixed;
+      inset: 10px auto 10px 10px;
+      z-index: 40;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      width: min(288px, calc(100vw - 28px));
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: rgba(248, 242, 234, .96);
+      box-shadow: var(--shadow);
+      transform: translateX(calc(-100% - 18px));
+      transition: transform .2s ease;
+    }
+
+    body.nav-open .sidebar { transform: translateX(0); }
+
+    .sidebar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .avatar {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: linear-gradient(160deg, var(--green), var(--blue));
+      box-shadow: var(--soft-shadow);
+      font-size: 1.35rem;
+    }
+
+    .nav-list {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .nav-list a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .34);
+      color: var(--ink);
+      font-weight: 750;
+    }
+
+    .nav-list a:active { transform: translateY(1px); }
+
+    .sidebar-foot {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.45;
+    }
+
+    .nav-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 35;
+      border: 0;
+      background: rgba(65, 73, 71, .28);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+    }
+
+    body.nav-open .nav-backdrop {
+      opacity: 1;
+      pointer-events: auto;
     }
 
     .hero, .panel, .summary-card, .card, .resource-card, .today-card, .day-card {
@@ -70,6 +153,13 @@
       padding: 18px 16px 14px;
       border-radius: 28px;
       overflow: hidden;
+    }
+
+    .menu-button {
+      align-self: start;
+      width: 44px;
+      min-width: 44px;
+      padding: 0;
     }
 
     .hero::after {
@@ -105,6 +195,13 @@
       font-size: .95rem;
     }
 
+    .hero-title {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      min-width: 0;
+    }
+
     .hero-actions, .row-actions, .chips {
       display: flex;
       flex-wrap: wrap;
@@ -133,6 +230,10 @@
     }
 
     .button.danger, .icon-button.danger { color: #8b686b; }
+    .button:disabled, .pill-button:disabled, .icon-button:disabled {
+      cursor: not-allowed;
+      opacity: .55;
+    }
     .button:active, .pill-button:active, .icon-button:active { transform: translateY(1px); }
 
     .summary {
@@ -309,6 +410,16 @@
       align-items: center;
     }
 
+    .course-form {
+      grid-template-columns: 110px 118px 1fr 1fr auto;
+      align-items: center;
+    }
+
+    .resource-form {
+      grid-template-columns: 76px 1fr 1fr 1.2fr auto;
+      align-items: center;
+    }
+
     input, select, textarea {
       width: 100%;
       min-width: 0;
@@ -335,6 +446,14 @@
       grid-template-columns: 1fr auto;
       gap: 10px;
       align-items: start;
+    }
+
+    .course-edit {
+      display: grid;
+      grid-template-columns: 92px 112px 1fr 1fr 1.2fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-top: 9px;
     }
 
     .checkin-inputs {
@@ -402,13 +521,25 @@
 
     .resource-card {
       display: grid;
-      grid-template-columns: 52px 1fr;
-      gap: 11px;
-      align-items: center;
+      gap: 10px;
       min-height: 84px;
       padding: 12px;
       border-radius: var(--radius);
       background: var(--paper-strong);
+    }
+
+    .resource-top {
+      display: grid;
+      grid-template-columns: 52px 1fr auto;
+      gap: 11px;
+      align-items: center;
+    }
+
+    .resource-edit {
+      display: grid;
+      grid-template-columns: 58px 1fr 1fr auto;
+      gap: 8px;
+      align-items: center;
     }
 
     .resource-icon {
@@ -422,6 +553,26 @@
     }
 
     .resource-card:hover { transform: translateY(-1px); }
+
+    .update-banner {
+      position: fixed;
+      left: 50%;
+      bottom: max(66px, calc(env(safe-area-inset-bottom) + 66px));
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: min(520px, calc(100vw - 24px));
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(248, 242, 234, .97);
+      box-shadow: var(--shadow);
+      transform: translateX(-50%);
+    }
+
+    .update-banner[hidden] { display: none; }
+    .update-banner span { flex: 1; min-width: 0; color: var(--muted); font-size: .84rem; }
 
     .record-group {
       padding: 12px;
@@ -468,27 +619,65 @@
       .app { width: min(100vw - 14px, 1180px); }
       .hero, .layout, .summary, .week-grid, .resource-grid, .stat-grid { grid-template-columns: 1fr; }
       .hero-actions { justify-content: flex-start; }
+      .hero-title { align-items: flex-start; }
       .panel.wide { grid-column: auto; }
       .section-head, .today-card, .note { align-items: flex-start; flex-direction: column; }
-      .form.compact, .todo-form, .countdown-form, .checkin-head, .checkin-inputs, .todo-row, .project-row, .count-row, .count-edit, .exam-row {
+      .form.compact, .todo-form, .countdown-form, .course-form, .resource-form, .checkin-head, .checkin-inputs, .todo-row, .project-row, .count-row, .count-edit, .course-edit, .resource-top, .resource-edit, .exam-row {
         grid-template-columns: 1fr;
       }
       .button, .pill-button { min-height: 42px; }
       .summary-card { min-height: auto; }
-      .resource-card { grid-template-columns: 52px 1fr; }
       h1 { font-size: 2.15rem; }
+      .update-banner {
+        align-items: stretch;
+        border-radius: 22px;
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 <body>
+  <nav class="sidebar" id="sidebar" aria-label="工作台导航">
+    <div class="sidebar-head">
+      <div class="hero-title">
+        <div class="avatar">🎓</div>
+        <div>
+          <p class="eyebrow">WorkBench</p>
+          <h2>移动工作台</h2>
+        </div>
+      </div>
+      <button class="icon-button" id="closeNavBtn" type="button" aria-label="关闭侧边栏">✕</button>
+    </div>
+    <div class="nav-list">
+      <a href="#schedulePanel">📅 课表</a>
+      <a href="#checkinPanel">✅ 打卡</a>
+      <a href="#todoPanel">📝 待办</a>
+      <a href="#projectPanel">🎯 项目</a>
+      <a href="#countdownPanel">⏰ 节点</a>
+      <a href="#resourcePanel">🔗 资料</a>
+      <a href="#examPanel">📖 考研</a>
+      <a href="#recordPanel">📊 记录</a>
+    </div>
+    <div class="sidebar-foot">
+      <span>手机安装后会像应用一样从桌面打开。</span>
+      <span id="appVersionLabel"></span>
+    </div>
+  </nav>
+  <button class="nav-backdrop" id="navBackdrop" type="button" aria-label="关闭侧边栏"></button>
+
   <div class="app">
     <header class="hero">
-      <div>
-        <p class="eyebrow">📌 Student WorkBench</p>
-        <h1>个人工作台</h1>
-        <p class="lede">课表、打卡计时、待办、项目进度、倒计时、资料入口和 408 复习记录都在这里。所有数据保存在本机 localStorage。</p>
+      <div class="hero-title">
+        <button class="button menu-button" id="openNavBtn" type="button" aria-label="打开侧边栏">☰</button>
+        <div>
+          <p class="eyebrow">📌 Student WorkBench</p>
+          <h1>个人工作台</h1>
+          <p class="lede">课表、打卡计时、待办、项目进度、倒计时、资料入口和 408 复习记录都在这里。所有数据保存在本机 localStorage。</p>
+        </div>
       </div>
       <div class="hero-actions">
+        <button class="button primary" id="installBtn" type="button">📲 安装</button>
+        <button class="button" id="updateBtn" type="button">🔄 更新</button>
         <button class="button" id="exportBtn" type="button">📥 导出</button>
         <button class="button" id="importBtn" type="button">📤 导入</button>
         <button class="button danger" id="resetBtn" type="button">🧹 重置</button>
@@ -498,7 +687,7 @@
     <section class="summary" id="summary" aria-label="今日概览"></section>
 
     <main class="layout">
-      <section class="panel wide">
+      <section class="panel wide" id="schedulePanel">
         <header class="section-head">
           <div>
             <p class="kicker">📅 课表</p>
@@ -510,11 +699,31 @@
           <span>显示每节课的时间和地点，周末自动显示无课。</span>
           <span id="currentPeriod"></span>
         </div>
+        <form class="form course-form" id="courseForm">
+          <select name="day" aria-label="星期">
+            <option value="mon">周一</option>
+            <option value="tue">周二</option>
+            <option value="wed">周三</option>
+            <option value="thu">周四</option>
+            <option value="fri">周五</option>
+          </select>
+          <select name="slot" aria-label="节次">
+            <option value="1-2节">1-2节</option>
+            <option value="3-4节">3-4节</option>
+            <option value="5-6节">5-6节</option>
+            <option value="7-8节">7-8节</option>
+            <option value="9-10节">9-10节</option>
+            <option value="11-12节">11-12节</option>
+          </select>
+          <input name="title" type="text" maxlength="42" placeholder="课程名称" required />
+          <input name="place" type="text" maxlength="34" placeholder="地点" />
+          <button class="button primary" type="submit">➕ 加课</button>
+        </form>
         <div class="today-list" id="todayCourses"></div>
         <div class="week-grid" id="weekGrid"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="checkinPanel">
         <header class="section-head">
           <div>
             <p class="kicker">✅ 每日打卡</p>
@@ -530,7 +739,7 @@
         <div class="stack" id="checkinList"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="todoPanel">
         <header class="section-head">
           <div>
             <p class="kicker">📝 待办</p>
@@ -551,7 +760,7 @@
         <div class="stack" id="todoList"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="projectPanel">
         <header class="section-head">
           <div>
             <p class="kicker">🎯 项目进度</p>
@@ -562,7 +771,7 @@
         <div class="stack" id="projectList"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="countdownPanel">
         <header class="section-head">
           <div>
             <p class="kicker">⏰ 倒计时</p>
@@ -578,18 +787,25 @@
         <div class="stack" id="countdownList"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="resourcePanel">
         <header class="section-head">
           <div>
             <p class="kicker">🔗 资料入口</p>
             <h2>常用网站</h2>
           </div>
-          <span class="section-note">emoji 图标入口</span>
+          <span class="section-note">可自定义网站和图标</span>
         </header>
+        <form class="form resource-form" id="resourceForm">
+          <input name="emoji" type="text" maxlength="4" placeholder="图标" value="🔗" aria-label="emoji 图标" />
+          <input name="name" type="text" maxlength="24" placeholder="网站名称" required />
+          <input name="group" type="text" maxlength="20" placeholder="分类" value="自定义" />
+          <input name="url" type="text" placeholder="github.com 或 https://example.com" required />
+          <button class="button primary" type="submit">➕ 添加</button>
+        </form>
         <div class="resource-grid" id="resourceGrid"></div>
       </section>
 
-      <section class="panel wide">
+      <section class="panel wide" id="examPanel">
         <header class="section-head">
           <div>
             <p class="kicker">📖 408 考研</p>
@@ -604,7 +820,7 @@
         <div class="stack" id="examList"></div>
       </section>
 
-      <section class="panel wide">
+      <section class="panel wide" id="recordPanel">
         <header class="section-head">
           <div>
             <p class="kicker">📊 最近 7 天记录</p>
@@ -618,11 +834,16 @@
   </div>
 
   <input id="importInput" type="file" accept="application/json" hidden />
+  <div class="update-banner" id="updateBanner" hidden>
+    <span>新版本已经准备好，可以立即切换。</span>
+    <button class="pill-button primary" id="applyUpdateBtn" type="button">立即更新</button>
+  </div>
   <div class="toast" id="toast" aria-live="polite"></div>
 
   <script>
     (() => {
       const STORAGE_KEY = "workbench.v2";
+      const APP_VERSION = "2026.08.31.4";
       const dayOrder = ["mon", "tue", "wed", "thu", "fri"];
       const dayLabels = { mon: "周一", tue: "周二", wed: "周三", thu: "周四", fri: "周五" };
       const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -719,6 +940,7 @@
         currentPeriod: $("#currentPeriod"),
         todayCourses: $("#todayCourses"),
         weekGrid: $("#weekGrid"),
+        courseForm: $("#courseForm"),
         checkinRate: $("#checkinRate"),
         timeStats: $("#timeStats"),
         checkinList: $("#checkinList"),
@@ -730,10 +952,19 @@
         projectList: $("#projectList"),
         countdownForm: $("#countdownForm"),
         countdownList: $("#countdownList"),
+        resourceForm: $("#resourceForm"),
         resourceGrid: $("#resourceGrid"),
         examList: $("#examList"),
         recordNote: $("#recordNote"),
         recordList: $("#recordList"),
+        openNavBtn: $("#openNavBtn"),
+        closeNavBtn: $("#closeNavBtn"),
+        navBackdrop: $("#navBackdrop"),
+        appVersionLabel: $("#appVersionLabel"),
+        installBtn: $("#installBtn"),
+        updateBtn: $("#updateBtn"),
+        applyUpdateBtn: $("#applyUpdateBtn"),
+        updateBanner: $("#updateBanner"),
         exportBtn: $("#exportBtn"),
         importBtn: $("#importBtn"),
         resetBtn: $("#resetBtn"),
@@ -741,6 +972,8 @@
         toast: $("#toast"),
       };
 
+      let deferredInstallPrompt = null;
+      let waitingWorker = null;
       const state = load();
       seedFormDates();
       bind();
@@ -749,9 +982,18 @@
       registerServiceWorker();
 
       function bind() {
+        els.courseForm.addEventListener("submit", addCourse);
         els.addCheckinForm.addEventListener("submit", addCheckin);
         els.todoForm.addEventListener("submit", addTodo);
         els.countdownForm.addEventListener("submit", addCountdown);
+        els.resourceForm.addEventListener("submit", addResource);
+        els.openNavBtn.addEventListener("click", openNav);
+        els.closeNavBtn.addEventListener("click", closeNav);
+        els.navBackdrop.addEventListener("click", closeNav);
+        document.querySelectorAll(".nav-list a").forEach(link => link.addEventListener("click", closeNav));
+        els.installBtn.addEventListener("click", installApp);
+        els.updateBtn.addEventListener("click", checkForUpdates);
+        els.applyUpdateBtn.addEventListener("click", applyUpdate);
         els.exportBtn.addEventListener("click", exportData);
         els.importBtn.addEventListener("click", () => els.importInput.click());
         els.importInput.addEventListener("change", importData);
@@ -759,6 +1001,12 @@
         document.addEventListener("click", onClick);
         document.addEventListener("input", onInput);
         document.addEventListener("change", onChange);
+        window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+        window.addEventListener("appinstalled", () => {
+          deferredInstallPrompt = null;
+          els.installBtn.disabled = true;
+          toast("已安装到桌面");
+        });
       }
 
       function render() {
@@ -777,7 +1025,7 @@
       }
 
       function renderSummary(now, todayKey) {
-        const todayCourses = schedule[todayKey] || [];
+        const todayCourses = getDayCourses(todayKey);
         const doneToday = state.checkins.filter(item => item.records.some(r => r.date === today())).length;
         const openTodos = state.todos.filter(t => !t.done).sort(compareTodos);
         const next = state.countdowns.map(c => ({ ...c, ...countdown(c.date, now) })).sort((a, b) => a.days - b.days)[0];
@@ -793,7 +1041,7 @@
         const current = currentPeriod(now);
         els.todayLabel.textContent = `${dayNames[now.getDay()]} · ${dateKey(now)}`;
         els.currentPeriod.textContent = current ? `当前第 ${current.index} 节 · ${current.start}-${current.end}` : "现在不在上课时段";
-        const todayCourses = schedule[todayKey] || [];
+        const todayCourses = getDayCourses(todayKey);
         els.todayCourses.innerHTML = todayCourses.length ? todayCourses.map(course => `
           <article class="today-card">
             <div class="main-text">
@@ -821,9 +1069,9 @@
           <article class="day-card ${day === todayKey ? "today" : ""}">
             <div class="day-head">
               <strong>${dayLabels[day]}</strong>
-              <span class="tag ${day === todayKey ? "hot" : ""}">${day === todayKey ? "今天" : `${schedule[day].length} 门`}</span>
+              <span class="tag ${day === todayKey ? "hot" : ""}">${day === todayKey ? "今天" : `${getDayCourses(day).length} 门`}</span>
             </div>
-            ${schedule[day].map(course => `
+            ${getDayCourses(day).map(course => `
               <div class="course-row">
                 <div class="course-title">${escapeHtml(course.title)}</div>
                 <div class="meta-row">
@@ -832,8 +1080,18 @@
                   <span>📍 ${escapeHtml(course.place)}</span>
                 </div>
                 ${course.note ? `<div class="muted">${escapeHtml(course.note)}</div>` : ""}
+                <div class="course-edit">
+                  <select data-action="course-day" data-id="${course.id}" aria-label="星期">
+                    ${dayOrder.map(key => `<option value="${key}" ${key === day ? "selected" : ""}>${dayLabels[key]}</option>`).join("")}
+                  </select>
+                  <input data-action="course-slot" data-id="${course.id}" value="${escapeAttr(course.slot)}" placeholder="1-2节" />
+                  <input data-action="course-title" data-id="${course.id}" value="${escapeAttr(course.title)}" placeholder="课程名称" />
+                  <input data-action="course-place" data-id="${course.id}" value="${escapeAttr(course.place)}" placeholder="地点" />
+                  <input data-action="course-note" data-id="${course.id}" value="${escapeAttr(course.note || "")}" placeholder="备注，可空" />
+                  <button class="icon-button danger" data-action="delete-course" data-id="${course.id}" type="button" aria-label="删除${escapeAttr(course.title)}">🗑️</button>
+                </div>
               </div>
-            `).join("")}
+            `).join("") || `<div class="muted">这天暂无课程。</div>`}
           </article>
         `).join("");
       }
@@ -954,16 +1212,28 @@
 
       function renderResources() {
         els.resourceGrid.innerHTML = state.resources.map(item => {
-          const body = `
-            <span class="resource-icon">${item.emoji}</span>
-            <span class="main-text">
-              <span class="resource-title">${escapeHtml(item.name)}</span>
-              <span class="muted">${escapeHtml(item.group)}</span>
-            </span>
+          const canOpen = Boolean(item.url);
+          return `
+            <article class="resource-card">
+              <div class="resource-top">
+                <span class="resource-icon">${escapeHtml(item.emoji || "🔗")}</span>
+                <span class="main-text">
+                  <span class="resource-title">${escapeHtml(item.name)}</span>
+                  <span class="muted">${escapeHtml(item.group)}${canOpen ? "" : " · 待补网址"}</span>
+                </span>
+                ${canOpen
+                  ? `<a class="icon-button" href="${escapeAttr(normalizeUrl(item.url))}" target="_blank" rel="noreferrer" aria-label="打开${escapeAttr(item.name)}">↗</a>`
+                  : `<button class="icon-button" data-action="focus-resource-url" data-id="${item.id}" type="button" aria-label="补充网址">✎</button>`}
+              </div>
+              <div class="resource-edit">
+                <input data-action="resource-emoji" data-id="${item.id}" value="${escapeAttr(item.emoji || "🔗")}" maxlength="4" aria-label="入口图标" />
+                <input data-action="resource-name" data-id="${item.id}" value="${escapeAttr(item.name)}" maxlength="24" aria-label="入口名称" />
+                <input data-action="resource-group" data-id="${item.id}" value="${escapeAttr(item.group)}" maxlength="20" aria-label="入口分类" />
+                <button class="icon-button danger" data-action="delete-resource" data-id="${item.id}" type="button" aria-label="删除${escapeAttr(item.name)}">🗑️</button>
+              </div>
+              <input data-action="resource-url" data-id="${item.id}" value="${escapeAttr(item.url || "")}" placeholder="https://..." aria-label="入口网址" />
+            </article>
           `;
-          return item.url
-            ? `<a class="resource-card" href="${escapeAttr(item.url)}" target="_blank" rel="noreferrer">${body}</a>`
-            : `<button class="resource-card" data-action="set-resource" data-name="${escapeAttr(item.name)}" type="button">${body}</button>`;
         }).join("");
       }
 
@@ -1010,6 +1280,25 @@
         });
       }
 
+      function addCourse(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const day = form.day.value;
+        const title = form.title.value.trim();
+        if (!day || !title) return;
+        state.schedule[day].push({
+          id: id("course"),
+          slot: form.slot.value.trim() || "1-2节",
+          title,
+          place: form.place.value.trim() || "地点待定",
+          note: "",
+        });
+        form.reset();
+        save();
+        render();
+        toast("已添加课程");
+      }
+
       function addCheckin(event) {
         event.preventDefault();
         const name = event.currentTarget.name.value.trim();
@@ -1053,6 +1342,27 @@
         save();
         render();
         toast("已添加关键节点");
+      }
+
+      function addResource(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const name = form.name.value.trim();
+        const url = form.url.value.trim();
+        if (!name || !url) return;
+        state.resources.push({
+          id: id("res"),
+          emoji: form.emoji.value.trim() || "🔗",
+          group: form.group.value.trim() || "自定义",
+          name,
+          url: normalizeUrl(url),
+        });
+        form.reset();
+        form.emoji.value = "🔗";
+        form.group.value = "自定义";
+        save();
+        render();
+        toast("已添加资料入口");
       }
 
       function onClick(event) {
@@ -1114,6 +1424,16 @@
           toast("已删除待办");
         }
 
+        if (action === "delete-course") {
+          const course = findCourse(target.dataset.id);
+          if (!course) return;
+          if (!confirm(`删除课程「${course.course.title}」吗？`)) return;
+          state.schedule[course.day] = state.schedule[course.day].filter(item => item.id !== course.course.id);
+          save();
+          render();
+          toast("已删除课程");
+        }
+
         if (action === "delete-countdown") {
           const item = state.countdowns.find(x => x.id === target.dataset.id);
           if (!item) return;
@@ -1124,15 +1444,19 @@
           toast("已删除关键节点");
         }
 
-        if (action === "set-resource") {
-          const name = target.dataset.name;
-          const url = prompt(`请输入「${name}」的网址`);
-          if (url === null) return;
-          const resource = state.resources.find(x => x.name === name);
-          if (resource) resource.url = url.trim();
+        if (action === "focus-resource-url") {
+          const input = document.querySelector(`[data-action="resource-url"][data-id="${target.dataset.id}"]`);
+          if (input) input.focus();
+        }
+
+        if (action === "delete-resource") {
+          const resource = state.resources.find(x => x.id === target.dataset.id);
+          if (!resource) return;
+          if (!confirm(`删除资料入口「${resource.name}」吗？`)) return;
+          state.resources = state.resources.filter(x => x.id !== resource.id);
           save();
           render();
-          toast("资料入口已更新");
+          toast("已删除资料入口");
         }
       }
 
@@ -1141,6 +1465,7 @@
         const contentId = target.dataset.content;
         const minutesId = target.dataset.minutes;
         const countdownNameId = target.dataset.countdownName;
+        const editableActions = ["course-slot", "course-title", "course-place", "course-note", "resource-emoji", "resource-name", "resource-group", "resource-url"];
         if (contentId) {
           const item = state.checkins.find(x => x.id === contentId);
           if (item) item.draft = target.value;
@@ -1156,6 +1481,21 @@
           if (item) item.name = target.value.trimStart();
           save();
           renderSummary(new Date(), weekKey(new Date()));
+        }
+        if (editableActions.includes(target.dataset.action)) {
+          if (target.dataset.action.startsWith("course-")) {
+            const found = findCourse(target.dataset.id);
+            if (!found) return;
+            found.course[target.dataset.action.replace("course-", "")] = target.value.trimStart();
+          }
+          if (target.dataset.action.startsWith("resource-")) {
+            const resource = state.resources.find(x => x.id === target.dataset.id);
+            if (!resource) return;
+            const key = target.dataset.action.replace("resource-", "");
+            resource[key] = key === "url" ? target.value.trim() : target.value.trimStart();
+          }
+          save();
+          if (target.dataset.action === "course-title") renderSummary(new Date(), weekKey(new Date()));
         }
         if (target.dataset.action === "exam-chapter" || target.dataset.action === "exam-note") {
           const item = state.exam.find(x => x.id === target.dataset.id);
@@ -1182,6 +1522,16 @@
           save();
           render();
           toast("关键节点时间已更新");
+        }
+        if (target.dataset.action === "course-day") {
+          const found = findCourse(target.dataset.id);
+          const nextDay = target.value;
+          if (!found || !state.schedule[nextDay] || found.day === nextDay) return;
+          state.schedule[found.day] = state.schedule[found.day].filter(item => item.id !== found.course.id);
+          state.schedule[nextDay].push(found.course);
+          save();
+          render();
+          toast("课程星期已更新");
         }
       }
 
@@ -1248,9 +1598,10 @@
         const fallback = {
           checkins: defaults.checkins.map(item => ({ id: id("check"), ...item, records: [], timerStart: null, draft: "", manualMinutes: "" })),
           todos: defaults.todos.map(item => ({ id: id("todo"), done: false, ...item })),
+          schedule: normalizeSchedule(schedule),
           countdowns: countdowns.map(item => ({ id: id("count"), ...item })),
           exam: defaults.exam.map(item => ({ id: id("exam"), ...item })),
-          resources: resources.map(item => ({ ...item })),
+          resources: resources.map(item => ({ id: id("res"), ...item })),
         };
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
@@ -1259,6 +1610,7 @@
           return {
             checkins: Array.isArray(data.checkins) ? normalizeCheckins(data.checkins) : fallback.checkins,
             todos: Array.isArray(data.todos) ? normalizeTodos(data.todos) : fallback.todos,
+            schedule: data.schedule ? normalizeSchedule(data.schedule) : fallback.schedule,
             countdowns: Array.isArray(data.countdowns) ? normalizeCountdowns(data.countdowns) : fallback.countdowns,
             exam: Array.isArray(data.exam) ? normalizeExam(data.exam) : fallback.exam,
             resources: Array.isArray(data.resources) ? normalizeResources(data.resources) : fallback.resources,
@@ -1305,6 +1657,21 @@
         }));
       }
 
+      function normalizeSchedule(value) {
+        const result = Object.fromEntries(dayOrder.map(day => [day, []]));
+        dayOrder.forEach(day => {
+          const items = Array.isArray(value?.[day]) ? value[day] : [];
+          result[day] = items.filter(item => item && item.title).map(item => ({
+            id: item.id || id("course"),
+            slot: String(item.slot || "1-2节"),
+            title: String(item.title),
+            place: String(item.place || "地点待定"),
+            note: String(item.note || ""),
+          }));
+        });
+        return result;
+      }
+
       function normalizeCountdowns(items) {
         return items.filter(item => item && item.name && item.date).map(item => ({
           id: item.id || id("count"),
@@ -1329,10 +1696,27 @@
 
       function normalizeResources(items) {
         const byName = new Map(items.filter(item => item && item.name).map(item => [item.name, item]));
-        return resources.map(base => {
+        const merged = resources.map(base => {
           const saved = byName.get(base.name);
-          return { ...base, url: saved && typeof saved.url === "string" ? saved.url : base.url };
+          return {
+            id: saved?.id || id("res"),
+            ...base,
+            emoji: saved?.emoji || base.emoji,
+            group: saved?.group || base.group,
+            url: typeof saved?.url === "string" ? saved.url : base.url,
+          };
         });
+        const defaultNames = new Set(resources.map(item => item.name));
+        const custom = items
+          .filter(item => item && item.name && !defaultNames.has(item.name))
+          .map(item => ({
+            id: item.id || id("res"),
+            emoji: String(item.emoji || "🔗"),
+            group: String(item.group || "自定义"),
+            name: String(item.name),
+            url: String(item.url || ""),
+          }));
+        return [...merged, ...custom];
       }
 
       function exportData() {
@@ -1354,6 +1738,7 @@
             const data = JSON.parse(text);
             if (Array.isArray(data.checkins)) state.checkins = normalizeCheckins(data.checkins);
             if (Array.isArray(data.todos)) state.todos = normalizeTodos(data.todos);
+            if (data.schedule) state.schedule = normalizeSchedule(data.schedule);
             if (Array.isArray(data.countdowns)) state.countdowns = normalizeCountdowns(data.countdowns);
             if (Array.isArray(data.exam)) state.exam = normalizeExam(data.exam);
             if (Array.isArray(data.resources)) state.resources = normalizeResources(data.resources);
@@ -1378,14 +1763,91 @@
         toast("已恢复默认数据");
       }
 
+      function openNav() {
+        document.body.classList.add("nav-open");
+      }
+
+      function closeNav() {
+        document.body.classList.remove("nav-open");
+      }
+
+      function onBeforeInstallPrompt(event) {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        els.installBtn.disabled = false;
+        toast("可以安装到手机桌面");
+      }
+
+      async function installApp() {
+        if (!deferredInstallPrompt) {
+          toast("请用浏览器菜单添加到主屏幕");
+          return;
+        }
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice.catch(() => null);
+        deferredInstallPrompt = null;
+      }
+
+      async function checkForUpdates() {
+        if (!navigator.onLine) {
+          toast("当前离线，联网后再更新");
+          return;
+        }
+        if (!("serviceWorker" in navigator)) {
+          location.reload();
+          return;
+        }
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) {
+          location.reload();
+          return;
+        }
+        await registration.update();
+        if (registration.waiting) {
+          waitingWorker = registration.waiting;
+          els.updateBanner.hidden = false;
+        } else {
+          toast("已检查，当前是最新版本");
+        }
+      }
+
+      function applyUpdate() {
+        if (waitingWorker) {
+          waitingWorker.postMessage({ type: "SKIP_WAITING" });
+          return;
+        }
+        location.reload();
+      }
+
       function registerServiceWorker() {
         if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-          navigator.serviceWorker.register("./sw.js").catch(() => {});
+          navigator.serviceWorker.register("./sw.js").then((registration) => {
+            if (registration.waiting) {
+              waitingWorker = registration.waiting;
+              els.updateBanner.hidden = false;
+            }
+            registration.addEventListener("updatefound", () => {
+              const worker = registration.installing;
+              if (!worker) return;
+              worker.addEventListener("statechange", () => {
+                if (worker.state === "installed" && navigator.serviceWorker.controller) {
+                  waitingWorker = worker;
+                  els.updateBanner.hidden = false;
+                }
+              });
+            });
+          }).catch(() => {});
+          navigator.serviceWorker.addEventListener("controllerchange", () => location.reload());
         }
       }
 
       function seedFormDates() {
         els.todoForm.due.value = today();
+        els.countdownForm.date.value = today();
+        els.courseForm.day.value = "mon";
+        els.courseForm.slot.value = "1-2节";
+        els.appVersionLabel.textContent = `版本 ${APP_VERSION}`;
+        if (isStandalone()) els.installBtn.disabled = true;
       }
 
       function summaryCard(label, value, detail) {
@@ -1416,7 +1878,30 @@
 
       function slotTime(slot) {
         const [start, end = start] = slot.replace("节", "").split("-").map(Number);
+        if (!periods[start - 1] || !periods[end - 1]) return "时间待定";
         return `${periods[start - 1][1]}-${periods[end - 1][2]}`;
+      }
+
+      function getDayCourses(day) {
+        return day && state.schedule?.[day] ? state.schedule[day] : [];
+      }
+
+      function findCourse(courseId) {
+        for (const day of dayOrder) {
+          const course = state.schedule[day].find(item => item.id === courseId);
+          if (course) return { day, course };
+        }
+        return null;
+      }
+
+      function normalizeUrl(value) {
+        const text = String(value || "").trim();
+        if (!text) return "";
+        return /^https?:\/\//i.test(text) ? text : `https://${text}`;
+      }
+
+      function isStandalone() {
+        return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
       }
 
       function currentPeriod(now) {
