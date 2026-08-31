@@ -97,6 +97,20 @@
       align-content: start;
     }
 
+    .nav-pull {
+      position: absolute;
+      left: calc(100% - 6px);
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 72px;
+      border: 1px solid var(--line);
+      border-left: 0;
+      border-radius: 0 16px 16px 0;
+      background: rgba(248, 242, 234, .96);
+      box-shadow: var(--soft-shadow);
+    }
+
     .nav-list a {
       display: flex;
       align-items: center;
@@ -411,8 +425,14 @@
     }
 
     .course-form {
-      grid-template-columns: 110px 118px 1fr 1fr auto;
+      grid-template-columns: 92px 92px 1fr 1fr 92px auto;
       align-items: center;
+    }
+
+    .course-import {
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      margin-bottom: 12px;
     }
 
     .resource-form {
@@ -450,7 +470,7 @@
 
     .course-edit {
       display: grid;
-      grid-template-columns: 92px 112px 1fr 1fr 1.2fr auto;
+      grid-template-columns: 84px 96px 1fr 1fr 1fr auto;
       gap: 8px;
       align-items: center;
       margin-top: 9px;
@@ -625,6 +645,7 @@
       .form.compact, .todo-form, .countdown-form, .course-form, .resource-form, .checkin-head, .checkin-inputs, .todo-row, .project-row, .count-row, .count-edit, .course-edit, .resource-top, .resource-edit, .exam-row {
         grid-template-columns: 1fr;
       }
+      .course-import { grid-template-columns: 1fr; }
       .button, .pill-button { min-height: 42px; }
       .summary-card { min-height: auto; }
       h1 { font-size: 2.15rem; }
@@ -662,6 +683,7 @@
       <span>手机安装后会像应用一样从桌面打开。</span>
       <span id="appVersionLabel"></span>
     </div>
+    <div class="nav-pull" aria-hidden="true"></div>
   </nav>
   <button class="nav-backdrop" id="navBackdrop" type="button" aria-label="关闭侧边栏"></button>
 
@@ -699,6 +721,12 @@
           <span>显示每节课的时间和地点，周末自动显示无课。</span>
           <span id="currentPeriod"></span>
         </div>
+        <form class="form course-import" id="courseImportForm">
+          <input name="semester" type="text" maxlength="24" placeholder="学期名称，例如 2026-2027-1" required />
+          <input name="startWeek" type="number" min="1" max="30" value="1" aria-label="起始周次" />
+          <button class="button" type="button" id="exportScheduleBtn">📤 导出课表</button>
+          <button class="button primary" type="submit">📥 导入课表</button>
+        </form>
         <form class="form course-form" id="courseForm">
           <select name="day" aria-label="星期">
             <option value="mon">周一</option>
@@ -931,6 +959,12 @@
           { name: "操作系统", stage: "未开始", chapter: "", note: "" },
           { name: "计算机网络", stage: "未开始", chapter: "", note: "" },
         ],
+        scheduleMeta: {
+          semester: "2026-2027-1",
+          activeWeek: 1,
+          startDate: "2026-09-07",
+          totalWeeks: 18,
+        },
       };
 
       const $ = (selector) => document.querySelector(selector);
@@ -941,6 +975,8 @@
         todayCourses: $("#todayCourses"),
         weekGrid: $("#weekGrid"),
         courseForm: $("#courseForm"),
+        courseImportForm: $("#courseImportForm"),
+        exportScheduleBtn: $("#exportScheduleBtn"),
         checkinRate: $("#checkinRate"),
         timeStats: $("#timeStats"),
         checkinList: $("#checkinList"),
@@ -982,6 +1018,8 @@
       registerServiceWorker();
 
       function bind() {
+        els.courseImportForm.addEventListener("submit", importSemesterSchedule);
+        els.exportScheduleBtn.addEventListener("click", exportSchedule);
         els.courseForm.addEventListener("submit", addCourse);
         els.addCheckinForm.addEventListener("submit", addCheckin);
         els.todoForm.addEventListener("submit", addTodo);
@@ -1007,11 +1045,24 @@
           els.installBtn.disabled = true;
           toast("已安装到桌面");
         });
+        let touchStartX = null;
+        document.addEventListener("touchstart", (event) => {
+          touchStartX = event.touches?.[0]?.clientX ?? null;
+        }, { passive: true });
+        document.addEventListener("touchend", (event) => {
+          const startX = touchStartX;
+          const endX = event.changedTouches?.[0]?.clientX ?? null;
+          if (startX === null || endX === null) return;
+          if (startX < 28 && endX - startX > 36) openNav();
+          if (document.body.classList.contains("nav-open") && startX - endX > 36) closeNav();
+          touchStartX = null;
+        }, { passive: true });
       }
 
       function render() {
         const now = new Date();
         const todayKey = weekKey(now);
+        syncScheduleMeta();
         renderSummary(now, todayKey);
         renderSchedule(now, todayKey);
         renderCheckins();
@@ -1041,7 +1092,8 @@
         const current = currentPeriod(now);
         els.todayLabel.textContent = `${dayNames[now.getDay()]} · ${dateKey(now)}`;
         els.currentPeriod.textContent = current ? `当前第 ${current.index} 节 · ${current.start}-${current.end}` : "现在不在上课时段";
-        const todayCourses = getDayCourses(todayKey);
+        const weekIndex = currentWeekIndex(now);
+        const todayCourses = getDayCourses(todayKey, weekIndex);
         els.todayCourses.innerHTML = todayCourses.length ? todayCourses.map(course => `
           <article class="today-card">
             <div class="main-text">
@@ -1069,9 +1121,9 @@
           <article class="day-card ${day === todayKey ? "today" : ""}">
             <div class="day-head">
               <strong>${dayLabels[day]}</strong>
-              <span class="tag ${day === todayKey ? "hot" : ""}">${day === todayKey ? "今天" : `${getDayCourses(day).length} 门`}</span>
+              <span class="tag ${day === todayKey ? "hot" : ""}">${day === todayKey ? "今天" : `${getDayCourses(day, weekIndex).length} 门`}</span>
             </div>
-            ${getDayCourses(day).map(course => `
+            ${getDayCourses(day, weekIndex).map(course => `
               <div class="course-row">
                 <div class="course-title">${escapeHtml(course.title)}</div>
                 <div class="meta-row">
@@ -1084,6 +1136,7 @@
                   <select data-action="course-day" data-id="${course.id}" aria-label="星期">
                     ${dayOrder.map(key => `<option value="${key}" ${key === day ? "selected" : ""}>${dayLabels[key]}</option>`).join("")}
                   </select>
+                  <input data-action="course-week" data-id="${course.id}" value="${escapeAttr(course.week || weekIndex)}" inputmode="numeric" placeholder="周次" />
                   <input data-action="course-slot" data-id="${course.id}" value="${escapeAttr(course.slot)}" placeholder="1-2节" />
                   <input data-action="course-title" data-id="${course.id}" value="${escapeAttr(course.title)}" placeholder="课程名称" />
                   <input data-action="course-place" data-id="${course.id}" value="${escapeAttr(course.place)}" placeholder="地点" />
@@ -1286,14 +1339,18 @@
         const day = form.day.value;
         const title = form.title.value.trim();
         if (!day || !title) return;
-        state.schedule[day].push({
+        const week = clamp(Number(form.week.value || currentWeekIndex(new Date())), 1, state.schedule.meta.totalWeeks || 30);
+        state.schedule.weeks[week] ??= Object.fromEntries(dayOrder.map(key => [key, []]));
+        state.schedule.weeks[week][day].push({
           id: id("course"),
           slot: form.slot.value.trim() || "1-2节",
           title,
           place: form.place.value.trim() || "地点待定",
           note: "",
+          week,
         });
         form.reset();
+        seedFormDates();
         save();
         render();
         toast("已添加课程");
@@ -1428,7 +1485,7 @@
           const course = findCourse(target.dataset.id);
           if (!course) return;
           if (!confirm(`删除课程「${course.course.title}」吗？`)) return;
-          state.schedule[course.day] = state.schedule[course.day].filter(item => item.id !== course.course.id);
+          state.schedule.weeks[course.week][course.day] = state.schedule.weeks[course.week][course.day].filter(item => item.id !== course.course.id);
           save();
           render();
           toast("已删除课程");
@@ -1486,7 +1543,13 @@
           if (target.dataset.action.startsWith("course-")) {
             const found = findCourse(target.dataset.id);
             if (!found) return;
-            found.course[target.dataset.action.replace("course-", "")] = target.value.trimStart();
+            const key = target.dataset.action.replace("course-", "");
+            if (key === "week") {
+              const nextWeek = clamp(Number(target.value || found.week), 1, state.schedule.meta.totalWeeks || 30);
+              moveCourseWeek(found, nextWeek);
+            } else {
+              found.course[key] = target.value.trimStart();
+            }
           }
           if (target.dataset.action.startsWith("resource-")) {
             const resource = state.resources.find(x => x.id === target.dataset.id);
@@ -1526,9 +1589,9 @@
         if (target.dataset.action === "course-day") {
           const found = findCourse(target.dataset.id);
           const nextDay = target.value;
-          if (!found || !state.schedule[nextDay] || found.day === nextDay) return;
-          state.schedule[found.day] = state.schedule[found.day].filter(item => item.id !== found.course.id);
-          state.schedule[nextDay].push(found.course);
+          if (!found || found.day === nextDay) return;
+          state.schedule.weeks[found.week][found.day] = state.schedule.weeks[found.week][found.day].filter(item => item.id !== found.course.id);
+          state.schedule.weeks[found.week][nextDay].push(found.course);
           save();
           render();
           toast("课程星期已更新");
@@ -1598,7 +1661,7 @@
         const fallback = {
           checkins: defaults.checkins.map(item => ({ id: id("check"), ...item, records: [], timerStart: null, draft: "", manualMinutes: "" })),
           todos: defaults.todos.map(item => ({ id: id("todo"), done: false, ...item })),
-          schedule: normalizeSchedule(schedule),
+          schedule: normalizeSchedule({ meta: defaults.scheduleMeta, weeks: { 1: schedule } }),
           countdowns: countdowns.map(item => ({ id: id("count"), ...item })),
           exam: defaults.exam.map(item => ({ id: id("exam"), ...item })),
           resources: resources.map(item => ({ id: id("res"), ...item })),
@@ -1658,18 +1721,30 @@
       }
 
       function normalizeSchedule(value) {
-        const result = Object.fromEntries(dayOrder.map(day => [day, []]));
-        dayOrder.forEach(day => {
-          const items = Array.isArray(value?.[day]) ? value[day] : [];
-          result[day] = items.filter(item => item && item.title).map(item => ({
-            id: item.id || id("course"),
-            slot: String(item.slot || "1-2节"),
-            title: String(item.title),
-            place: String(item.place || "地点待定"),
-            note: String(item.note || ""),
-          }));
-        });
-        return result;
+        const meta = {
+          semester: String(value?.meta?.semester || defaults.scheduleMeta.semester),
+          activeWeek: clamp(Number(value?.meta?.activeWeek || defaults.scheduleMeta.activeWeek), 1, value?.meta?.totalWeeks || defaults.scheduleMeta.totalWeeks),
+          startDate: String(value?.meta?.startDate || defaults.scheduleMeta.startDate),
+          totalWeeks: clamp(Number(value?.meta?.totalWeeks || defaults.scheduleMeta.totalWeeks), 1, 30),
+        };
+        const weeks = {};
+        const sourceWeeks = value?.weeks && typeof value.weeks === "object" ? value.weeks : { 1: value };
+        for (let i = 1; i <= meta.totalWeeks; i += 1) {
+          const rawWeek = sourceWeeks[i] || sourceWeeks[String(i)] || {};
+          weeks[i] = Object.fromEntries(dayOrder.map(day => [day, []]));
+          dayOrder.forEach(day => {
+            const items = Array.isArray(rawWeek?.[day]) ? rawWeek[day] : [];
+            weeks[i][day] = items.filter(item => item && item.title).map(item => ({
+              id: item.id || id("course"),
+              slot: String(item.slot || "1-2节"),
+              title: String(item.title),
+              place: String(item.place || "地点待定"),
+              note: String(item.note || ""),
+              week: i,
+            }));
+          });
+        }
+        return { meta, weeks };
       }
 
       function normalizeCountdowns(items) {
@@ -1846,6 +1921,9 @@
         els.countdownForm.date.value = today();
         els.courseForm.day.value = "mon";
         els.courseForm.slot.value = "1-2节";
+        els.courseForm.week.value = String(state.schedule.meta.activeWeek || currentWeekIndex(new Date()));
+        els.courseImportForm.semester.value = state.schedule.meta.semester;
+        els.courseImportForm.startWeek.value = state.schedule.meta.activeWeek;
         els.appVersionLabel.textContent = `版本 ${APP_VERSION}`;
         if (isStandalone()) els.installBtn.disabled = true;
       }
@@ -1882,16 +1960,83 @@
         return `${periods[start - 1][1]}-${periods[end - 1][2]}`;
       }
 
-      function getDayCourses(day) {
-        return day && state.schedule?.[day] ? state.schedule[day] : [];
+      function currentWeekIndex(now = new Date()) {
+        const start = stripTime(parseDate(state.schedule.meta.startDate || defaults.scheduleMeta.startDate));
+        const diff = Math.max(0, Math.floor((stripTime(now) - start) / 86400000));
+        return clamp(Math.floor(diff / 7) + 1, 1, state.schedule.meta.totalWeeks || defaults.scheduleMeta.totalWeeks);
+      }
+
+      function getDayCourses(day, week = state.schedule.meta.activeWeek) {
+        return day && state.schedule?.weeks?.[week]?.[day] ? state.schedule.weeks[week][day] : [];
       }
 
       function findCourse(courseId) {
-        for (const day of dayOrder) {
-          const course = state.schedule[day].find(item => item.id === courseId);
-          if (course) return { day, course };
+        for (const week of Object.keys(state.schedule.weeks)) {
+          for (const day of dayOrder) {
+            const course = state.schedule.weeks[week][day].find(item => item.id === courseId);
+            if (course) return { week: Number(week), day, course };
+          }
         }
         return null;
+      }
+
+      function moveCourseWeek(found, nextWeek) {
+        const targetWeek = clamp(Number(nextWeek), 1, state.schedule.meta.totalWeeks || defaults.scheduleMeta.totalWeeks);
+        if (!state.schedule.weeks[targetWeek]) state.schedule.weeks[targetWeek] = Object.fromEntries(dayOrder.map(key => [key, []]));
+        state.schedule.weeks[found.week][found.day] = state.schedule.weeks[found.week][found.day].filter(item => item.id !== found.course.id);
+        found.course.week = targetWeek;
+        state.schedule.weeks[targetWeek][found.day].push(found.course);
+      }
+
+      function syncScheduleMeta() {
+        if (!state.schedule?.meta) state.schedule.meta = { ...defaults.scheduleMeta };
+        if (!state.schedule?.weeks) state.schedule.weeks = normalizeSchedule(state.schedule).weeks;
+        state.schedule.meta.activeWeek = currentWeekIndex(new Date());
+      }
+
+      function exportSchedule() {
+        const payload = {
+          schedule: state.schedule,
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `schedule-${today()}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast("课表已导出");
+      }
+
+      function importSemesterSchedule(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const semester = form.semester.value.trim() || defaults.scheduleMeta.semester;
+        const startWeek = clamp(Number(form.startWeek.value || 1), 1, 30);
+        const file = document.createElement("input");
+        file.type = "file";
+        file.accept = "application/json";
+        file.onchange = async () => {
+          const picked = file.files?.[0];
+          if (!picked) return;
+          try {
+            const text = await picked.text();
+            const data = JSON.parse(text);
+            if (!data.schedule) {
+              toast("没有找到课表数据");
+              return;
+            }
+            state.schedule = normalizeSchedule(data.schedule);
+            state.schedule.meta.semester = semester;
+            state.schedule.meta.activeWeek = startWeek;
+            save();
+            render();
+            toast("学期课表已导入");
+          } catch {
+            toast("课表导入失败");
+          }
+        };
+        file.click();
       }
 
       function normalizeUrl(value) {
