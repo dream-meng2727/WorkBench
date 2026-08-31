@@ -51,7 +51,7 @@
     .app {
       width: min(1180px, calc(100vw - 18px));
       margin: 0 auto;
-      padding: max(10px, env(safe-area-inset-top)) 0 26px;
+      padding: max(10px, env(safe-area-inset-top)) 0 calc(104px + env(safe-area-inset-bottom));
     }
 
     .sidebar {
@@ -144,6 +144,57 @@
       pointer-events: none;
       transition: opacity .18s ease;
     }
+
+    .dock {
+      position: fixed;
+      left: 50%;
+      right: auto;
+      bottom: max(8px, env(safe-area-inset-bottom));
+      z-index: 45;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 6px;
+      width: min(760px, calc(100vw - 14px));
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(248, 242, 234, .96);
+      box-shadow: var(--shadow);
+      transform: translateX(-50%);
+    }
+
+    .dock-item {
+      display: grid;
+      justify-items: center;
+      gap: 2px;
+      min-height: 48px;
+      padding: 6px 4px;
+      border: 0;
+      border-radius: 16px;
+      background: transparent;
+      color: var(--ink);
+      font-size: .72rem;
+      line-height: 1.1;
+    }
+
+    .dock-item span {
+      display: block;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dock-item strong {
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .dock-item.more {
+      background: rgba(181, 201, 214, .24);
+    }
+
+    .dock-item:active { transform: translateY(1px); }
 
     body.nav-open .nav-backdrop {
       opacity: 1;
@@ -654,6 +705,9 @@
         border-radius: 22px;
         flex-direction: column;
       }
+      .dock {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
     }
   </style>
 </head>
@@ -735,6 +789,7 @@
             <option value="thu">周四</option>
             <option value="fri">周五</option>
           </select>
+          <input name="week" type="number" min="1" max="30" value="1" aria-label="周次" />
           <select name="slot" aria-label="节次">
             <option value="1-2节">1-2节</option>
             <option value="3-4节">3-4节</option>
@@ -860,6 +915,15 @@
       </section>
     </main>
   </div>
+
+  <nav class="dock" id="dock" aria-label="底部导航">
+    <button class="dock-item" type="button" data-scroll="#schedulePanel"><strong>📅</strong><span>课表</span></button>
+    <button class="dock-item" type="button" data-scroll="#checkinPanel"><strong>✅</strong><span>打卡</span></button>
+    <button class="dock-item" type="button" data-scroll="#todoPanel"><strong>📝</strong><span>待办</span></button>
+    <button class="dock-item" type="button" data-scroll="#projectPanel"><strong>🎯</strong><span>项目</span></button>
+    <button class="dock-item" type="button" data-scroll="#resourcePanel"><strong>🔗</strong><span>资料</span></button>
+    <button class="dock-item more" type="button" data-action="open-nav"><strong>☰</strong><span>更多</span></button>
+  </nav>
 
   <input id="importInput" type="file" accept="application/json" hidden />
   <div class="update-banner" id="updateBanner" hidden>
@@ -996,6 +1060,7 @@
         openNavBtn: $("#openNavBtn"),
         closeNavBtn: $("#closeNavBtn"),
         navBackdrop: $("#navBackdrop"),
+        dock: $("#dock"),
         appVersionLabel: $("#appVersionLabel"),
         installBtn: $("#installBtn"),
         updateBtn: $("#updateBtn"),
@@ -1029,6 +1094,7 @@
         els.closeNavBtn.addEventListener("click", closeNav);
         els.navBackdrop.addEventListener("click", closeNav);
         document.querySelectorAll(".nav-list a").forEach(link => link.addEventListener("click", closeNav));
+        els.dock.addEventListener("click", onDockClick);
         els.installBtn.addEventListener("click", installApp);
         els.updateBtn.addEventListener("click", checkForUpdates);
         els.applyUpdateBtn.addEventListener("click", applyUpdate);
@@ -1844,6 +1910,17 @@
 
       function closeNav() {
         document.body.classList.remove("nav-open");
+      }
+
+      function onDockClick(event) {
+        const button = event.target.closest("[data-scroll],[data-action='open-nav']");
+        if (!button) return;
+        if (button.dataset.action === "open-nav") {
+          openNav();
+          return;
+        }
+        const target = document.querySelector(button.dataset.scroll);
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
       function onBeforeInstallPrompt(event) {
