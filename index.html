@@ -486,6 +486,16 @@
       margin-bottom: 12px;
     }
 
+    .schedule-tools {
+      display: none;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    body.schedule-manage .schedule-tools { display: grid; }
+    body:not(.schedule-manage) .course-edit { display: none; }
+    body:not(.schedule-manage) .ocr-panel { display: none; }
+
     .ocr-panel {
       margin-bottom: 12px;
       padding: 12px;
@@ -804,70 +814,75 @@
             <p class="kicker">📅 课表</p>
             <h2>今天上什么课</h2>
           </div>
-          <span class="section-note" id="todayLabel"></span>
+          <div class="row-actions">
+            <span class="section-note" id="todayLabel"></span>
+            <button class="pill-button" id="scheduleManageBtn" type="button">管理</button>
+          </div>
         </header>
         <div class="note">
           <span>显示每节课的时间和地点，周末自动显示无课。</span>
           <span id="currentPeriod"></span>
         </div>
-        <form class="form course-import" id="courseImportForm">
-          <input name="semester" type="text" maxlength="24" placeholder="学期名称，例如 2026-2027-1" required />
-          <input name="startWeek" type="number" min="1" max="30" value="1" aria-label="起始周次" />
-          <button class="button" type="button" id="courseImageBtn">🖼️ 图片识别</button>
-          <button class="button" type="button" id="exportScheduleBtn">📤 导出课表</button>
-          <button class="button primary" type="submit">📥 导入课表</button>
-        </form>
-        <input id="courseImageInput" type="file" accept="image/*" capture="environment" hidden />
-        <section class="ocr-panel" id="ocrPanel" hidden>
-          <div class="section-head">
-            <div>
-              <p class="kicker">🖼️ 图片识别</p>
-              <h2>自动识别课表</h2>
-            </div>
-            <span class="section-note" id="ocrStatus">等待上传图片</span>
-          </div>
-          <div class="note">
-            <span>更适合把学校课表截图后直接导入，识别后还能手动改。</span>
-            <span>支持中文课表和周次信息。</span>
-          </div>
-          <div class="ocr-grid">
-            <div class="ocr-preview">
-              <div class="ocr-label">OCR 原文</div>
-              <textarea id="ocrText" readonly placeholder="识别后的文字会显示在这里"></textarea>
-            </div>
-            <div class="ocr-preview">
-              <div class="ocr-label">识别结果</div>
-              <div class="stack" id="ocrCourseList"></div>
-            </div>
-          </div>
-          <div class="row-actions">
-            <button class="pill-button primary" id="ocrApplyBtn" type="button">应用到课表</button>
-            <button class="pill-button" id="ocrResetBtn" type="button">清空识别</button>
-          </div>
-        </section>
-        <form class="form course-form" id="courseForm">
-          <select name="day" aria-label="星期">
-            <option value="mon">周一</option>
-            <option value="tue">周二</option>
-            <option value="wed">周三</option>
-            <option value="thu">周四</option>
-            <option value="fri">周五</option>
-          </select>
-          <input name="week" type="number" min="1" max="30" value="1" aria-label="周次" />
-          <select name="slot" aria-label="节次">
-            <option value="1-2节">1-2节</option>
-            <option value="3-4节">3-4节</option>
-            <option value="5-6节">5-6节</option>
-            <option value="7-8节">7-8节</option>
-            <option value="9-10节">9-10节</option>
-            <option value="11-12节">11-12节</option>
-          </select>
-          <input name="title" type="text" maxlength="42" placeholder="课程名称" required />
-          <input name="place" type="text" maxlength="34" placeholder="地点" />
-          <button class="button primary" type="submit">➕ 加课</button>
-        </form>
         <div class="today-list" id="todayCourses"></div>
         <div class="week-grid" id="weekGrid"></div>
+        <div class="schedule-tools" id="scheduleTools">
+          <form class="form course-import" id="courseImportForm">
+            <input name="semester" type="text" maxlength="24" placeholder="学期名称，例如 2026-2027-1" required />
+            <input name="startWeek" type="number" min="1" max="30" value="1" aria-label="起始周次" />
+            <button class="button" type="button" id="courseImageBtn">🖼️ 图片识别</button>
+            <button class="button" type="button" id="exportScheduleBtn">📤 导出课表</button>
+            <button class="button primary" type="submit">📥 导入课表</button>
+          </form>
+          <input id="courseImageInput" type="file" accept="image/*" capture="environment" hidden />
+          <section class="ocr-panel" id="ocrPanel" hidden>
+            <div class="section-head">
+              <div>
+                <p class="kicker">🖼️ 图片识别</p>
+                <h2>自动识别课表</h2>
+              </div>
+              <span class="section-note" id="ocrStatus">等待上传图片</span>
+            </div>
+            <div class="note">
+              <span>更适合把学校课表截图后直接导入，识别后还能手动改。</span>
+              <span>支持中文课表和周次信息。</span>
+            </div>
+            <div class="ocr-grid">
+              <div class="ocr-preview">
+                <div class="ocr-label">OCR 原文</div>
+                <textarea id="ocrText" readonly placeholder="识别后的文字会显示在这里"></textarea>
+              </div>
+              <div class="ocr-preview">
+                <div class="ocr-label">识别结果</div>
+                <div class="stack" id="ocrCourseList"></div>
+              </div>
+            </div>
+            <div class="row-actions">
+              <button class="pill-button primary" id="ocrApplyBtn" type="button">应用到课表</button>
+              <button class="pill-button" id="ocrResetBtn" type="button">清空识别</button>
+            </div>
+          </section>
+          <form class="form course-form" id="courseForm">
+            <select name="day" aria-label="星期">
+              <option value="mon">周一</option>
+              <option value="tue">周二</option>
+              <option value="wed">周三</option>
+              <option value="thu">周四</option>
+              <option value="fri">周五</option>
+            </select>
+            <input name="week" type="number" min="1" max="30" value="1" aria-label="周次" />
+            <select name="slot" aria-label="节次">
+              <option value="1-2节">1-2节</option>
+              <option value="3-4节">3-4节</option>
+              <option value="5-6节">5-6节</option>
+              <option value="7-8节">7-8节</option>
+              <option value="9-10节">9-10节</option>
+              <option value="11-12节">11-12节</option>
+            </select>
+            <input name="title" type="text" maxlength="42" placeholder="课程名称" required />
+            <input name="place" type="text" maxlength="34" placeholder="地点" />
+            <button class="button primary" type="submit">➕ 加课</button>
+          </form>
+        </div>
       </section>
 
       <section class="panel" id="checkinPanel">
@@ -1139,6 +1154,7 @@
         updateBtn: $("#updateBtn"),
         applyUpdateBtn: $("#applyUpdateBtn"),
         updateBanner: $("#updateBanner"),
+        scheduleManageBtn: $("#scheduleManageBtn"),
         exportBtn: $("#exportBtn"),
         importBtn: $("#importBtn"),
         resetBtn: $("#resetBtn"),
@@ -1162,6 +1178,7 @@
         els.courseImageInput.addEventListener("change", handleCourseImage);
         els.ocrApplyBtn.addEventListener("click", applyOcrCourses);
         els.ocrResetBtn.addEventListener("click", resetOcrPanel);
+        els.scheduleManageBtn.addEventListener("click", toggleScheduleManage);
         els.exportScheduleBtn.addEventListener("click", exportSchedule);
         els.courseForm.addEventListener("submit", addCourse);
         els.addCheckinForm.addEventListener("submit", addCheckin);
@@ -1291,6 +1308,8 @@
             `).join("") || `<div class="muted">这天暂无课程。</div>`}
           </article>
         `).join("");
+        if (els.scheduleTools) els.scheduleTools.hidden = !document.body.classList.contains("schedule-manage");
+        els.scheduleManageBtn.textContent = document.body.classList.contains("schedule-manage") ? "收起" : "管理";
       }
 
       function renderCheckins() {
@@ -1997,6 +2016,11 @@
 
       function closeNav() {
         document.body.classList.remove("nav-open");
+      }
+
+      function toggleScheduleManage() {
+        document.body.classList.toggle("schedule-manage");
+        renderSchedule(new Date(), weekKey(new Date()));
       }
 
       function onDockClick(event) {
