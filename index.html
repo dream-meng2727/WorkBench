@@ -304,6 +304,11 @@
       align-items: center;
     }
 
+    .countdown-form {
+      grid-template-columns: 1fr 150px auto;
+      align-items: center;
+    }
+
     input, select, textarea {
       width: 100%;
       min-width: 0;
@@ -337,6 +342,13 @@
       grid-template-columns: 1fr 118px auto;
       gap: 8px;
       align-items: start;
+    }
+
+    .count-edit {
+      display: grid;
+      grid-template-columns: 1fr 150px;
+      gap: 8px;
+      margin-top: 10px;
     }
 
     .timer {
@@ -458,7 +470,7 @@
       .hero-actions { justify-content: flex-start; }
       .panel.wide { grid-column: auto; }
       .section-head, .today-card, .note { align-items: flex-start; flex-direction: column; }
-      .form.compact, .todo-form, .checkin-head, .checkin-inputs, .todo-row, .project-row, .count-row, .exam-row {
+      .form.compact, .todo-form, .countdown-form, .checkin-head, .checkin-inputs, .todo-row, .project-row, .count-row, .count-edit, .exam-row {
         grid-template-columns: 1fr;
       }
       .button, .pill-button { min-height: 42px; }
@@ -556,8 +568,13 @@
             <p class="kicker">⏰ 倒计时</p>
             <h2>关键节点</h2>
           </div>
-          <span class="section-note">自动计算剩余天数</span>
+          <span class="section-note">可新增和修改时间</span>
         </header>
+        <form class="form countdown-form" id="countdownForm">
+          <input name="name" type="text" maxlength="32" placeholder="新增关键节点" required />
+          <input name="date" type="date" required />
+          <button class="button primary" type="submit">➕ 添加</button>
+        </form>
         <div class="stack" id="countdownList"></div>
       </section>
 
@@ -711,6 +728,7 @@
         todoList: $("#todoList"),
         projectNote: $("#projectNote"),
         projectList: $("#projectList"),
+        countdownForm: $("#countdownForm"),
         countdownList: $("#countdownList"),
         resourceGrid: $("#resourceGrid"),
         examList: $("#examList"),
@@ -733,6 +751,7 @@
       function bind() {
         els.addCheckinForm.addEventListener("submit", addCheckin);
         els.todoForm.addEventListener("submit", addTodo);
+        els.countdownForm.addEventListener("submit", addCountdown);
         els.exportBtn.addEventListener("click", exportData);
         els.importBtn.addEventListener("click", () => els.importInput.click());
         els.importInput.addEventListener("change", importData);
@@ -761,7 +780,7 @@
         const todayCourses = schedule[todayKey] || [];
         const doneToday = state.checkins.filter(item => item.records.some(r => r.date === today())).length;
         const openTodos = state.todos.filter(t => !t.done).sort(compareTodos);
-        const next = countdowns.map(c => ({ ...c, ...countdown(c.date, now) })).sort((a, b) => a.days - b.days)[0];
+        const next = state.countdowns.map(c => ({ ...c, ...countdown(c.date, now) })).sort((a, b) => a.days - b.days)[0];
         els.summary.innerHTML = [
           summaryCard("📅 今日课程", `${todayCourses.length} 门`, todayCourses[0]?.title || "今天没有课"),
           summaryCard("✅ 今日打卡", `${doneToday}/${state.checkins.length}`, `${formatMinutes(todayMinutes())} 已学习`),
@@ -848,7 +867,7 @@
               </div>
               <div class="checkin-inputs">
                 <textarea data-content="${item.id}" placeholder="今天学了什么，比如：链表反转、二叉树遍历、六级核心词">${escapeHtml(item.draft || "")}</textarea>
-                <input data-minutes="${item.id}" type="number" min="0" step="1" placeholder="手动分钟" value="${item.manualMinutes || ""}" />
+                <input data-minutes="${item.id}" type="number" min="0" step="1" placeholder="手动分钟" value="${escapeAttr(item.manualMinutes || "")}" />
                 <button class="button primary" data-action="checkin" data-id="${item.id}" type="button">打卡</button>
               </div>
               <div class="row-actions">
@@ -912,7 +931,7 @@
       }
 
       function renderCountdowns(now) {
-        els.countdownList.innerHTML = countdowns
+        els.countdownList.innerHTML = state.countdowns
           .map(item => ({ ...item, ...countdown(item.date, now) }))
           .sort((a, b) => a.days - b.days)
           .map(item => `
@@ -920,13 +939,17 @@
               <div class="count-row">
                 <div class="main-text">
                   <span class="countdown-name">⏰ ${escapeHtml(item.name)}</span>
-                  <span class="muted">${escapeHtml(item.date)}</span>
+                  <span class="muted">${escapeHtml(item.date)} · ${escapeHtml(item.label)}</span>
                 </div>
-                <span class="tag hot">${escapeHtml(item.label)}</span>
+                <button class="icon-button danger" data-action="delete-countdown" data-id="${item.id}" type="button" aria-label="删除${escapeAttr(item.name)}">🗑️</button>
               </div>
               <div class="summary-value">${item.days < 0 ? "已过" : "还有"} ${Math.abs(item.days)} 天</div>
+              <div class="count-edit">
+                <input data-countdown-name="${item.id}" value="${escapeAttr(item.name)}" maxlength="32" aria-label="节点名称" />
+                <input data-action="countdown-date" data-id="${item.id}" type="date" value="${escapeAttr(item.date)}" aria-label="节点日期" />
+              </div>
             </article>
-          `).join("");
+          `).join("") || `<article class="card"><span class="muted">还没有关键节点，可以先添加一个考试、报名或项目截止时间。</span></article>`;
       }
 
       function renderResources() {
@@ -1019,6 +1042,19 @@
         toast("已添加待办");
       }
 
+      function addCountdown(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const name = form.name.value.trim();
+        const date = form.date.value;
+        if (!name || !date) return;
+        state.countdowns.push({ id: id("count"), name, date });
+        form.reset();
+        save();
+        render();
+        toast("已添加关键节点");
+      }
+
       function onClick(event) {
         const target = event.target.closest("[data-action]");
         if (!target) return;
@@ -1078,6 +1114,16 @@
           toast("已删除待办");
         }
 
+        if (action === "delete-countdown") {
+          const item = state.countdowns.find(x => x.id === target.dataset.id);
+          if (!item) return;
+          if (!confirm(`删除关键节点「${item.name}」吗？`)) return;
+          state.countdowns = state.countdowns.filter(x => x.id !== item.id);
+          save();
+          render();
+          toast("已删除关键节点");
+        }
+
         if (action === "set-resource") {
           const name = target.dataset.name;
           const url = prompt(`请输入「${name}」的网址`);
@@ -1094,6 +1140,7 @@
         const target = event.target;
         const contentId = target.dataset.content;
         const minutesId = target.dataset.minutes;
+        const countdownNameId = target.dataset.countdownName;
         if (contentId) {
           const item = state.checkins.find(x => x.id === contentId);
           if (item) item.draft = target.value;
@@ -1103,6 +1150,12 @@
           const item = state.checkins.find(x => x.id === minutesId);
           if (item) item.manualMinutes = target.value;
           save();
+        }
+        if (countdownNameId) {
+          const item = state.countdowns.find(x => x.id === countdownNameId);
+          if (item) item.name = target.value.trimStart();
+          save();
+          renderSummary(new Date(), weekKey(new Date()));
         }
         if (target.dataset.action === "exam-chapter" || target.dataset.action === "exam-note") {
           const item = state.exam.find(x => x.id === target.dataset.id);
@@ -1115,12 +1168,21 @@
 
       function onChange(event) {
         const target = event.target;
-        if (target.dataset.action !== "exam-stage") return;
-        const item = state.exam.find(x => x.id === target.dataset.id);
-        if (!item) return;
-        item.stage = target.value;
-        save();
-        render();
+        if (target.dataset.action === "exam-stage") {
+          const item = state.exam.find(x => x.id === target.dataset.id);
+          if (!item) return;
+          item.stage = target.value;
+          save();
+          render();
+        }
+        if (target.dataset.action === "countdown-date") {
+          const item = state.countdowns.find(x => x.id === target.dataset.id);
+          if (!item) return;
+          item.date = target.value;
+          save();
+          render();
+          toast("关键节点时间已更新");
+        }
       }
 
       function projectState(rule) {
@@ -1186,6 +1248,7 @@
         const fallback = {
           checkins: defaults.checkins.map(item => ({ id: id("check"), ...item, records: [], timerStart: null, draft: "", manualMinutes: "" })),
           todos: defaults.todos.map(item => ({ id: id("todo"), done: false, ...item })),
+          countdowns: countdowns.map(item => ({ id: id("count"), ...item })),
           exam: defaults.exam.map(item => ({ id: id("exam"), ...item })),
           resources: resources.map(item => ({ ...item })),
         };
@@ -1196,6 +1259,7 @@
           return {
             checkins: Array.isArray(data.checkins) ? normalizeCheckins(data.checkins) : fallback.checkins,
             todos: Array.isArray(data.todos) ? normalizeTodos(data.todos) : fallback.todos,
+            countdowns: Array.isArray(data.countdowns) ? normalizeCountdowns(data.countdowns) : fallback.countdowns,
             exam: Array.isArray(data.exam) ? normalizeExam(data.exam) : fallback.exam,
             resources: Array.isArray(data.resources) ? normalizeResources(data.resources) : fallback.resources,
           };
@@ -1241,6 +1305,14 @@
         }));
       }
 
+      function normalizeCountdowns(items) {
+        return items.filter(item => item && item.name && item.date).map(item => ({
+          id: item.id || id("count"),
+          name: String(item.name),
+          date: String(item.date),
+        }));
+      }
+
       function normalizeExam(items) {
         const byName = new Map(items.filter(item => item && item.name).map(item => [item.name, item]));
         return defaults.exam.map(base => {
@@ -1282,6 +1354,7 @@
             const data = JSON.parse(text);
             if (Array.isArray(data.checkins)) state.checkins = normalizeCheckins(data.checkins);
             if (Array.isArray(data.todos)) state.todos = normalizeTodos(data.todos);
+            if (Array.isArray(data.countdowns)) state.countdowns = normalizeCountdowns(data.countdowns);
             if (Array.isArray(data.exam)) state.exam = normalizeExam(data.exam);
             if (Array.isArray(data.resources)) state.resources = normalizeResources(data.resources);
             save();
