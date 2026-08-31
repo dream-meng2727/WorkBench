@@ -481,9 +481,43 @@
     }
 
     .course-import {
-      grid-template-columns: 1fr auto auto;
+      grid-template-columns: 1fr auto auto auto;
       align-items: center;
       margin-bottom: 12px;
+    }
+
+    .ocr-panel {
+      margin-bottom: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .24);
+    }
+
+    .ocr-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .ocr-preview {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .ocr-label {
+      color: var(--muted);
+      font-size: .82rem;
+      font-weight: 700;
+    }
+
+    .ocr-preview textarea {
+      min-height: 220px;
+      width: 100%;
+      border-radius: 18px;
+      background: rgba(253, 248, 240, .95);
     }
 
     .resource-form {
@@ -697,6 +731,7 @@
         grid-template-columns: 1fr;
       }
       .course-import { grid-template-columns: 1fr; }
+      .ocr-grid { grid-template-columns: 1fr; }
       .button, .pill-button { min-height: 42px; }
       .summary-card { min-height: auto; }
       h1 { font-size: 2.15rem; }
@@ -778,9 +813,38 @@
         <form class="form course-import" id="courseImportForm">
           <input name="semester" type="text" maxlength="24" placeholder="学期名称，例如 2026-2027-1" required />
           <input name="startWeek" type="number" min="1" max="30" value="1" aria-label="起始周次" />
+          <button class="button" type="button" id="courseImageBtn">🖼️ 图片识别</button>
           <button class="button" type="button" id="exportScheduleBtn">📤 导出课表</button>
           <button class="button primary" type="submit">📥 导入课表</button>
         </form>
+        <input id="courseImageInput" type="file" accept="image/*" capture="environment" hidden />
+        <section class="ocr-panel" id="ocrPanel" hidden>
+          <div class="section-head">
+            <div>
+              <p class="kicker">🖼️ 图片识别</p>
+              <h2>自动识别课表</h2>
+            </div>
+            <span class="section-note" id="ocrStatus">等待上传图片</span>
+          </div>
+          <div class="note">
+            <span>更适合把学校课表截图后直接导入，识别后还能手动改。</span>
+            <span>支持中文课表和周次信息。</span>
+          </div>
+          <div class="ocr-grid">
+            <div class="ocr-preview">
+              <div class="ocr-label">OCR 原文</div>
+              <textarea id="ocrText" readonly placeholder="识别后的文字会显示在这里"></textarea>
+            </div>
+            <div class="ocr-preview">
+              <div class="ocr-label">识别结果</div>
+              <div class="stack" id="ocrCourseList"></div>
+            </div>
+          </div>
+          <div class="row-actions">
+            <button class="pill-button primary" id="ocrApplyBtn" type="button">应用到课表</button>
+            <button class="pill-button" id="ocrResetBtn" type="button">清空识别</button>
+          </div>
+        </section>
         <form class="form course-form" id="courseForm">
           <select name="day" aria-label="星期">
             <option value="mon">周一</option>
@@ -926,6 +990,7 @@
   </nav>
 
   <input id="importInput" type="file" accept="application/json" hidden />
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <div class="update-banner" id="updateBanner" hidden>
     <span>新版本已经准备好，可以立即切换。</span>
     <button class="pill-button primary" id="applyUpdateBtn" type="button">立即更新</button>
@@ -1040,7 +1105,15 @@
         weekGrid: $("#weekGrid"),
         courseForm: $("#courseForm"),
         courseImportForm: $("#courseImportForm"),
+        courseImageBtn: $("#courseImageBtn"),
+        courseImageInput: $("#courseImageInput"),
         exportScheduleBtn: $("#exportScheduleBtn"),
+        ocrPanel: $("#ocrPanel"),
+        ocrStatus: $("#ocrStatus"),
+        ocrText: $("#ocrText"),
+        ocrCourseList: $("#ocrCourseList"),
+        ocrApplyBtn: $("#ocrApplyBtn"),
+        ocrResetBtn: $("#ocrResetBtn"),
         checkinRate: $("#checkinRate"),
         timeStats: $("#timeStats"),
         checkinList: $("#checkinList"),
@@ -1075,6 +1148,7 @@
 
       let deferredInstallPrompt = null;
       let waitingWorker = null;
+      let ocrCourses = [];
       const state = load();
       seedFormDates();
       bind();
@@ -1084,6 +1158,10 @@
 
       function bind() {
         els.courseImportForm.addEventListener("submit", importSemesterSchedule);
+        els.courseImageBtn.addEventListener("click", () => els.courseImageInput.click());
+        els.courseImageInput.addEventListener("change", handleCourseImage);
+        els.ocrApplyBtn.addEventListener("click", applyOcrCourses);
+        els.ocrResetBtn.addEventListener("click", resetOcrPanel);
         els.exportScheduleBtn.addEventListener("click", exportSchedule);
         els.courseForm.addEventListener("submit", addCourse);
         els.addCheckinForm.addEventListener("submit", addCheckin);
@@ -1588,6 +1666,8 @@
         const contentId = target.dataset.content;
         const minutesId = target.dataset.minutes;
         const countdownNameId = target.dataset.countdownName;
+        const ocrField = target.dataset.ocrField;
+        const ocrIndex = Number(target.dataset.index);
         const editableActions = ["course-slot", "course-title", "course-place", "course-note", "resource-emoji", "resource-name", "resource-group", "resource-url"];
         if (contentId) {
           const item = state.checkins.find(x => x.id === contentId);
@@ -1632,6 +1712,13 @@
           if (target.dataset.action === "exam-chapter") item.chapter = target.value;
           if (target.dataset.action === "exam-note") item.note = target.value;
           save();
+        }
+        if (ocrField && Number.isFinite(ocrIndex) && ocrCourses[ocrIndex]) {
+          const item = ocrCourses[ocrIndex];
+          if (ocrField === "week") item.week = clamp(Number(target.value || item.week), 1, state.schedule.meta.totalWeeks || 30);
+          else if (ocrField === "day") item.day = target.value;
+          else item[ocrField] = target.value.trimStart();
+          renderOcrCourses();
         }
       }
 
@@ -2114,6 +2201,131 @@
           }
         };
         file.click();
+      }
+
+      async function handleCourseImage(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!window.Tesseract?.recognize) {
+          toast("当前浏览器不支持图片识别");
+          event.target.value = "";
+          return;
+        }
+        els.ocrPanel.hidden = false;
+        els.ocrStatus.textContent = "识别中...";
+        els.ocrText.value = "";
+        ocrCourses = [];
+        renderOcrCourses();
+        try {
+          const url = URL.createObjectURL(file);
+          const result = await Tesseract.recognize(url, "chi_sim+eng", {
+            logger: (m) => {
+              if (m.status) els.ocrStatus.textContent = `${m.status}${m.progress ? ` ${(m.progress * 100).toFixed(0)}%` : ""}`;
+            },
+          });
+          URL.revokeObjectURL(url);
+          const text = String(result.data.text || "").replace(/\r/g, "");
+          els.ocrText.value = text;
+          ocrCourses = parseOcrCourses(text);
+          renderOcrCourses();
+          els.ocrStatus.textContent = ocrCourses.length ? `识别到 ${ocrCourses.length} 条候选课程` : "没有识别到课程，试试更清晰的截图";
+        } catch {
+          els.ocrStatus.textContent = "识别失败";
+          toast("图片识别失败");
+        } finally {
+          event.target.value = "";
+        }
+      }
+
+      function parseOcrCourses(text) {
+        const lines = text.split("\n").map(line => line.replace(/\s+/g, " ").trim()).filter(Boolean);
+        const dayMap = [
+          ["周一", "mon"], ["星期一", "mon"], ["周二", "tue"], ["星期二", "tue"],
+          ["周三", "wed"], ["星期三", "wed"], ["周四", "thu"], ["星期四", "thu"],
+          ["周五", "fri"], ["星期五", "fri"],
+        ];
+        const slotPattern = /([1-9]|1[0-2])(?:\s*[-~至]\s*([1-9]|1[0-2]))?节?/;
+        const result = [];
+        let currentDay = "mon";
+        let currentWeek = currentWeekIndex(new Date());
+        for (const line of lines) {
+          const matchedDay = dayMap.find(([label]) => line.includes(label));
+          if (matchedDay) currentDay = matchedDay[1];
+          const weekMatch = line.match(/第\s*([1-9]|1[0-9]|2[0-9])\s*周/);
+          if (weekMatch) currentWeek = clamp(Number(weekMatch[1]), 1, state.schedule.meta.totalWeeks || 30);
+          const slotMatch = line.match(slotPattern);
+          if (!slotMatch) continue;
+          const slotStart = Number(slotMatch[1]);
+          const slotEnd = Number(slotMatch[2] || slotMatch[1]);
+          const parts = line.replace(slotMatch[0], "").split(/[\s/｜|]+/).filter(Boolean);
+          const title = parts[0] || "未命名课程";
+          const place = parts.find(part => /[楼室号-]/.test(part) || /\d/.test(part)) || "地点待定";
+          result.push({
+            id: id("ocr"),
+            week: currentWeek,
+            day: currentDay,
+            slot: `${slotStart}${slotStart === slotEnd ? "" : `-${slotEnd}`}节`,
+            title,
+            place,
+            note: line,
+          });
+        }
+        return result;
+      }
+
+      function renderOcrCourses() {
+        els.ocrCourseList.innerHTML = ocrCourses.length ? ocrCourses.map((course, index) => `
+          <article class="card">
+            <div class="course-row">
+              <div class="course-title">${escapeHtml(course.title)}</div>
+              <div class="meta-row">
+                <span class="tag hot">周${course.week}</span>
+                <span class="tag">${dayLabels[course.day]}</span>
+                <span class="tag">${escapeHtml(course.slot)}</span>
+                <span>📍 ${escapeHtml(course.place)}</span>
+              </div>
+              <input data-ocr-field="title" data-index="${index}" value="${escapeAttr(course.title)}" placeholder="课程名称" />
+              <input data-ocr-field="place" data-index="${index}" value="${escapeAttr(course.place)}" placeholder="地点" />
+              <input data-ocr-field="slot" data-index="${index}" value="${escapeAttr(course.slot)}" placeholder="节次" />
+              <select data-ocr-field="day" data-index="${index}">
+                ${dayOrder.map(day => `<option value="${day}" ${day === course.day ? "selected" : ""}>${dayLabels[day]}</option>`).join("")}
+              </select>
+              <input data-ocr-field="week" data-index="${index}" type="number" min="1" max="${state.schedule.meta.totalWeeks || 30}" value="${escapeAttr(course.week)}" />
+            </div>
+          </article>
+        `).join("") : `<article class="card"><span class="muted">识别结果会显示在这里。</span></article>`;
+      }
+
+      function applyOcrCourses() {
+        if (!ocrCourses.length) {
+          toast("还没有可应用的识别结果");
+          return;
+        }
+        const semesterWeek = clamp(Number(els.courseImportForm.startWeek.value || 1), 1, state.schedule.meta.totalWeeks || 30);
+        state.schedule.meta.activeWeek = semesterWeek;
+        for (const course of ocrCourses) {
+          const week = clamp(Number(course.week || semesterWeek), 1, state.schedule.meta.totalWeeks || 30);
+          if (!state.schedule.weeks[week]) state.schedule.weeks[week] = Object.fromEntries(dayOrder.map(key => [key, []]));
+          state.schedule.weeks[week][course.day] = state.schedule.weeks[week][course.day].filter(item => item.title !== course.title || item.slot !== course.slot);
+          state.schedule.weeks[week][course.day].push({
+            id: course.id || id("course"),
+            slot: course.slot,
+            title: course.title,
+            place: course.place,
+            note: course.note || "",
+            week,
+          });
+        }
+        save();
+        render();
+        toast("识别课表已应用");
+      }
+
+      function resetOcrPanel() {
+        ocrCourses = [];
+        els.ocrText.value = "";
+        renderOcrCourses();
+        els.ocrStatus.textContent = "等待上传图片";
       }
 
       function normalizeUrl(value) {
